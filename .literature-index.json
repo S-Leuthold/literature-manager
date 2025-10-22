@@ -164,5 +164,118 @@
     "extraction_confidence": 0.95,
     "processed_date": "2025-10-22T11:28:13.552856",
     "file_hash": "234901f23e01c5f25bfe3d266042783184de99c7c79f29139fb77d9fe7e0f0ff"
+  },
+  "7431385914e4e74289da899db7b1a50b19031af9c28c532eb56aafa98138a55e": {
+    "filepath": "library/literature/recent/Gosling et al., 2013 - What Are The Primary Factors Controlling The Light.pdf",
+    "original_filename": "Gosling et al., 2013 - Primary factors controlling light fraction and POM.pdf",
+    "doi": "10.1007/s00374-013-0791-9",
+    "title": "What are the primary factors controlling the light fraction and particulate soil organic matter content of agricultural soils?",
+    "authors": [
+      "Gosling, P.",
+      "Parsons, N.",
+      "Bending, G."
+    ],
+    "year": 2013,
+    "abstract": null,
+    "keywords": [],
+    "topic": null,
+    "confidence": 0.0,
+    "extraction_method": "doi_lookup",
+    "extraction_confidence": 0.95,
+    "processed_date": "2025-10-22T11:41:14.857378",
+    "file_hash": "7431385914e4e74289da899db7b1a50b19031af9c28c532eb56aafa98138a55e"
+  },
+  "8ca438cc0ded1783eca0be693319aec85dd856de94b59c3dd91c05942bca51e7": {
+    "filepath": "library/literature/recent/Griepentrog & Schmidt, 2013 - Discrepancies In Utilization Of Density Fractionation Along With.pdf",
+    "original_filename": "Grepentrog and Schmidt, 2013 - Discrepancies in utilization of density fractionation.pdf",
+    "doi": "10.1002/jpln.201200469",
+    "title": "Discrepancies in utilization of density fractionation along with ultrasonic dispersion to obtain distinct pools of soil organic matter",
+    "authors": [
+      "Griepentrog, M.",
+      "Schmidt, M."
+    ],
+    "year": 2013,
+    "abstract": "AbstractDensity fractionation along with ultrasonic dispersion is widely applied in soil science to obtain distinct fractions of soil organic matter. Density cut\u2010off and dispersion energy are crucial parameters to yield fractions closely corresponding to their conceptual definitions. Our literature review revealed methodological discrepancies in the utilization of density\u2010fractionation schemes. Strikingly, reasons for the selection of specific density or dispersion energy were rarely explained. Thus, it is not known how results of different approaches relate to each other. We therefore recommend testing and reporting effects of fractionation parameters on chemical and physical properties of fractions, to achieve agreement and coherence on parameters to be used and facilitate comparability in future studies.",
+    "keywords": [],
+    "topic": null,
+    "confidence": 0.0,
+    "extraction_method": "doi_lookup",
+    "extraction_confidence": 0.95,
+    "processed_date": "2025-10-22T11:41:19.091837",
+    "file_hash": "8ca438cc0ded1783eca0be693319aec85dd856de94b59c3dd91c05942bca51e7"
+  },
+  "deffb1280303eed9c572eff85bbf4905aa9b3e7e6a655a391353a52241aacc12": {
+    "filepath": "library/literature/recent/Hagen et al., 2020 - Mapping Conservation Management Practices And Outcomes In The.pdf",
+    "original_filename": "Hagen et al., 2020 - Management practices effects on DNDC.pdf",
+    "doi": "10.3390/land9110408",
+    "title": "Mapping Conservation Management Practices and Outcomes in the Corn Belt Using the Operational Tillage Information System (OpTIS) and the Denitrification\u2013Decomposition (DNDC) Model",
+    "authors": [
+      "Hagen, S.",
+      "Delgado, G.",
+      "Ingraham, P.",
+      "Cooke, I.",
+      "Emery, R.",
+      "P. Fisk, J.",
+      "Melendy, L.",
+      "Olson, T.",
+      "Patti, S.",
+      "Rubin, N.",
+      "Ziniti, B.",
+      "Chen, H.",
+      "Salas, W.",
+      "Elias, P.",
+      "Gustafson, D."
+    ],
+    "year": 2020,
+    "abstract": "Identifying and quantifying conservation-practice adoption in U.S. cropland is key to accurately monitoring trends in soil health regionally and nationally and informing climate change mitigation efforts. We present the results of an automated system used across 645 counties in the United States Corn Belt from 2005 to 2018, mapped at field-scale and summarized for distribution at aggregated scales. Large-scale mapping by OpTIS (Operational Tillage Information System), a software tool that analyzes remotely sensed data of agricultural land, provides trends of conservation tillage (defined as &gt;30% residue cover), cover cropping, and crop rotations, while modeling by DNDC (Denitrification\u2013Decomposition), a process-based model of carbon and biogeochemistry in soil, provides estimates of the ecosystem outcomes associated with the changes in management practices mapped by OpTIS. Ground-truthing data acquired via OpTIS mobile, a roadside field-surveying app, were used for verification in 30 counties. OpTIS results for the Corn Belt show adoption of cover crops after planting corn and soy increased from 1% to 3% of the mapped area when comparing 2006 to 2018. Comparison of trends for conservation tillage use from 2006 to 2018 shows a slight decrease in conservation tillage adoption, from 46% to 44%. Results from DNDC show these soils sequestered soil organic carbon (SOC) at an area-weighted mean change in SOC (dSOC) rate of 161 kgC/ha/year. Comparatively, in a scenario modeled without the adoption of soil health management practices, the same soils would have lost SOC at an area-weighted rate of \u221265 kgC/ha/year. As many factors affect changes to SOC, including climate and initial SOC in soils, modeling counterfactual scenarios at the field scale demonstrates outcomes of current soil health management in comparison to regional management practices and best management practices, with respect to SOC sequestration. Regional trends in adoption rates of conservation agriculture and resulting soil health implications are of great use for a wide range of stakeholders. We demonstrate the capability of OpTIS remote sensing to deliver robust, large-scale, multi-sensor, ground-verified monitoring data of current and historical adoption of conservation practices, and of DNDC process-based modeling to provide assessments of the associated environmental outcomes across regions in U.S. cropland.",
+    "keywords": [],
+    "topic": null,
+    "confidence": 0.0,
+    "extraction_method": "doi_lookup",
+    "extraction_confidence": 0.95,
+    "processed_date": "2025-10-22T11:41:21.923695",
+    "file_hash": "deffb1280303eed9c572eff85bbf4905aa9b3e7e6a655a391353a52241aacc12"
+  },
+  "c60a7e43ed3be5181539f95d7ba9717673a6e2f14ebfd8aaa40cd81213bca090": {
+    "filepath": "library/literature/recent/Hijbeek et al., 2017 - Do Organic Inputs Matter \u2013 A Meta-Analysis.pdf",
+    "original_filename": "Hijbeek et al., 2017 - Do organic inputs matter.pdf",
+    "doi": "10.1007/s11104-016-3031-x",
+    "title": "Do organic inputs matter \u2013 a meta-analysis of additional yield effects for arable crops in Europe",
+    "authors": [
+      "Hijbeek, R.",
+      "van Ittersum, M.",
+      "ten Berge, H.",
+      "Gort, G.",
+      "Spiegel, H.",
+      "Whitmore, A."
+    ],
+    "year": 2017,
+    "abstract": null,
+    "keywords": [],
+    "topic": null,
+    "confidence": 0.0,
+    "extraction_method": "doi_lookup",
+    "extraction_confidence": 0.95,
+    "processed_date": "2025-10-22T11:41:24.378511",
+    "file_hash": "c60a7e43ed3be5181539f95d7ba9717673a6e2f14ebfd8aaa40cd81213bca090"
+  },
+  "8061158e3ba14a9552f6549f7e2428a94c279a28e933862579a86f87aca12e15": {
+    "filepath": "library/literature/recent/Huang & Hall, 2017 - Elevated Moisture Stimulates Carbon Loss From Mineral Soils.pdf",
+    "original_filename": "Huang and Hall, 2017 - Mositure stimulates C loss from MAOM.pdf",
+    "doi": "10.1038/s41467-017-01998-z",
+    "title": "Elevated moisture stimulates carbon loss from mineral soils by releasing protected organic matter",
+    "authors": [
+      "Huang, W.",
+      "Hall, S."
+    ],
+    "year": 2017,
+    "abstract": "AbstractMoisture response functions for soil microbial carbon (C) mineralization remain a critical uncertainty for predicting ecosystem-climate feedbacks. Theory and models posit that C mineralization declines under elevated moisture and associated anaerobic conditions, leading to soil C accumulation. Yet, iron (Fe) reduction potentially releases protected C, providing an under-appreciated mechanism for C destabilization under elevated moisture. Here we incubate Mollisols from ecosystems under C3/C4plant rotations at moisture levels at and above field capacity over 5 months. Increased moisture and anaerobiosis initially suppress soil C mineralization, consistent with theory. However, after 25 days, elevated moisture stimulates cumulative gaseous C-loss as CO2and CH4to &gt;150% of the control. Stable C isotopes show that mineralization of older C3-derived C released following Fe reduction dominates C losses. Counter to theory, elevated moisture may significantly accelerate C losses from mineral soils over weeks to months\u2014a critical mechanistic deficiency of current Earth system models.",
+    "keywords": [],
+    "topic": null,
+    "confidence": 0.0,
+    "extraction_method": "doi_lookup",
+    "extraction_confidence": 0.95,
+    "processed_date": "2025-10-22T11:41:26.836896",
+    "file_hash": "8061158e3ba14a9552f6549f7e2428a94c279a28e933862579a86f87aca12e15"
   }
 }

@@ -47,3 +47,38 @@
   → Method: doi_lookup
   → Topic: none
 
+2025-10-22 11:41:14 | REVIEW_NEEDED | Gosling et al., 2013 - What Are The Primary Factors Controlling The Light.pdf
+  → Source: Gosling et al., 2013 - Primary factors controlling light fraction and POM.pdf
+  → Destination: library/literature/recent/Gosling et al., 2013 - What Are The Primary Factors Controlling The Light.pdf
+  → Confidence: 0%
+  → Method: doi_lookup
+  → Topic: none
+
+2025-10-22 11:41:19 | REVIEW_NEEDED | Griepentrog & Schmidt, 2013 - Discrepancies In Utilization Of Density Fractionation Along With.pdf
+  → Source: Grepentrog and Schmidt, 2013 - Discrepancies in utilization of density fractionation.pdf
+  → Destination: library/literature/recent/Griepentrog & Schmidt, 2013 - Discrepancies In Utilization Of Density Fractionation Along With.pdf
+  → Confidence: 0%
+  → Method: doi_lookup
+  → Topic: none
+
+2025-10-22 11:41:21 | REVIEW_NEEDED | Hagen et al., 2020 - Mapping Conservation Management Practices And Outcomes In The.pdf
+  → Source: Hagen et al., 2020 - Management practices effects on DNDC.pdf
+  → Destination: library/literature/recent/Hagen et al., 2020 - Mapping Conservation Management Practices And Outcomes In The.pdf
+  → Confidence: 0%
+  → Method: doi_lookup
+  → Topic: none
+
+2025-10-22 11:41:24 | REVIEW_NEEDED | Hijbeek et al., 2017 - Do Organic Inputs Matter – A Meta-Analysis.pdf
+  → Source: Hijbeek et al., 2017 - Do organic inputs matter.pdf
+  → Destination: library/literature/recent/Hijbeek et al., 2017 - Do Organic Inputs Matter – A Meta-Analysis.pdf
+  → Confidence: 0%
+  → Method: doi_lookup
+  → Topic: none
+
+2025-10-22 11:41:26 | REVIEW_NEEDED | Huang & Hall, 2017 - Elevated Moisture Stimulates Carbon Loss From Mineral Soils.pdf
+  → Source: Huang and Hall, 2017 - Mositure stimulates C loss from MAOM.pdf
+  → Destination: library/literature/recent/Huang & Hall, 2017 - Elevated Moisture Stimulates Carbon Loss From Mineral Soils.pdf
+  → Confidence: 0%
+  → Method: doi_lookup
+  → Topic: none
+

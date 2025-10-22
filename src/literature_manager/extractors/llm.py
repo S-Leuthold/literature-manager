@@ -42,7 +42,7 @@ Return ONLY the JSON object, no other text."""
 
 
 def extract_with_llm(
-    pdf_text: str, api_key: str, model: str = "claude-haiku-4-20250514"
+    pdf_text: str, api_key: str, model: str = "claude-3-5-haiku-20241022"
 ) -> Optional[Dict]:
     """
     Extract metadata using Claude LLM.
@@ -154,7 +154,7 @@ Return ONLY valid JSON:
 
 
 def enhance_metadata_with_llm(
-    metadata: Dict, api_key: str, model: str = "claude-haiku-4-20250514", retry: bool = True
+    metadata: Dict, api_key: str, model: str = "claude-3-5-haiku-20241022", retry: bool = True
 ) -> Dict:
     """
     Enhance metadata with LLM-generated summary and topic suggestion.
