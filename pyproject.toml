@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "literature-manager"
+version = "0.1.0"
+description = "Automated PDF literature organization tool with LLM-powered metadata extraction"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Sam Leuthold"}
+]
+
+dependencies = [
+    "click>=8.1.0",           # CLI framework
+    "pdfplumber>=0.11.0",     # PDF text extraction
+    "PyPDF2>=3.0.0",          # PDF metadata
+    "requests>=2.31.0",       # CrossRef API
+    "anthropic>=0.39.0",      # Claude API
+    "scikit-learn>=1.3.0",    # Keyword similarity
+    "watchdog>=3.0.0",        # File monitoring
+    "pyyaml>=6.0",            # Config files
+    "python-slugify>=8.0.0",  # kebab-case conversion
+    "colorama>=0.4.6",        # Colored terminal output
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+literature-manager = "literature_manager.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
