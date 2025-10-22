@@ -85,13 +85,17 @@ def process_single_pdf(pdf_path: Path, config, dry_run: bool = False, verbose: b
             # Complete failure
             print_error(f"  Failed to extract metadata from {pdf_path.name}")
 
-            if not dry_run:
+            if not dry_run and pdf_path.exists():
                 # Move to unknowables
                 unknowables_path = config.unknowables_path
                 unknowables_path.mkdir(parents=True, exist_ok=True)
                 dest = unknowables_path / pdf_path.name
-                pdf_path.rename(dest)
-                print_warning(f"  Moved to unknowables/")
+                try:
+                    pdf_path.rename(dest)
+                    print_warning(f"  Moved to unknowables/")
+                except FileNotFoundError:
+                    # File was already moved, ignore
+                    pass
 
             return False
 
@@ -245,6 +249,8 @@ def watch(ctx, verbose):
     from watchdog.events import FileSystemEventHandler
     from watchdog.observers import Observer
 
+    processed_files = set()
+
     class PDFHandler(FileSystemEventHandler):
         def on_created(self, event):
             if event.is_directory:
@@ -252,9 +258,19 @@ def watch(ctx, verbose):
 
             path = Path(event.src_path)
             if path.suffix.lower() == ".pdf":
+                # Skip if already processed
+                if path.name in processed_files:
+                    return
+
                 # Wait a moment to ensure file is fully written
                 time.sleep(2)
+
+                # Check if file still exists (may have been moved already)
+                if not path.exists():
+                    return
+
                 click.echo(f"\n{Fore.YELLOW}New PDF detected: {path.name}{Style.RESET_ALL}")
+                processed_files.add(path.name)
                 process_single_pdf(path, config, dry_run=False, verbose=verbose)
 
     print_info(f"Watching inbox: {config.inbox_path}")
