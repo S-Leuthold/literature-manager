@@ -262,11 +262,36 @@ def watch(ctx, verbose):
                 if path.name in processed_files:
                     return
 
-                # Wait a moment to ensure file is fully written
-                time.sleep(2)
+                # Wait until file is fully written (check file size stabilization)
+                time.sleep(1)  # Initial wait
 
-                # Check if file still exists (may have been moved already)
-                if not path.exists():
+                # Wait for file size to stabilize (max 30 seconds)
+                max_wait = 30
+                stable_count = 0
+                last_size = -1
+
+                for _ in range(max_wait):
+                    if not path.exists():
+                        return  # File was moved/deleted
+
+                    try:
+                        current_size = path.stat().st_size
+
+                        # File size hasn't changed - consider it stable
+                        if current_size == last_size and current_size > 0:
+                            stable_count += 1
+                            if stable_count >= 2:  # Stable for 2 seconds
+                                break
+                        else:
+                            stable_count = 0
+
+                        last_size = current_size
+                        time.sleep(1)
+                    except Exception:
+                        return  # Error accessing file
+
+                # Check if file still exists and is not empty
+                if not path.exists() or path.stat().st_size == 0:
                     return
 
                 click.echo(f"\n{Fore.YELLOW}New PDF detected: {path.name}{Style.RESET_ALL}")

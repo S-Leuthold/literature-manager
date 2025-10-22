@@ -82,3 +82,136 @@
   → Method: doi_lookup
   → Topic: none
 
+2025-10-22 11:44:22 | REVIEW_NEEDED | Kleber et al., 2015 - Mineral–Organic Associations - Formation, Properties.pdf
+  → Source: Kleber et al., 2015 - Organo-mineral interactions.pdf
+  → Destination: library/literature/recent/Kleber et al., 2015 - Mineral–Organic Associations - Formation, Properties.pdf
+  → Confidence: 0%
+  → Method: doi_lookup
+  → Topic: none
+
+2025-10-22 11:44:25 | REVIEW_NEEDED | Yang et al., 2022 - Multi‐Scale Biogeochemical Processes In Soil Ecosystems.pdf
+  → Source: Kleber, 2022 - Book chapter - Semantics of soilc C stabilitzatoin.pdf
+  → Destination: library/literature/recent/Yang et al., 2022 - Multi‐Scale Biogeochemical Processes In Soil Ecosystems.pdf
+  → Confidence: 0%
+  → Method: pdf_metadata
+  → Topic: none
+
+2025-10-22 11:44:27 | REVIEW_NEEDED | Klink et al., 2022 - Stable Isotopes Reveal That Fungal Residues Contribute More.pdf
+  → Source: Klink et al., 2022 - Stable isotopes, fungal residues, and MAOM.pdf
+  → Destination: library/literature/recent/Klink et al., 2022 - Stable Isotopes Reveal That Fungal Residues Contribute More.pdf
+  → Confidence: 0%
+  → Method: doi_lookup
+  → Topic: none
+
+2025-10-22 11:44:30 | REVIEW_NEEDED | Lavallee et al., 2020 - Conceptualizing Soil Organic Matter Into Particulate And Mineral‐Associated.pdf
+  → Source: Lavallee et al., 2019 - New framework for SOM in 21st Century.pdf
+  → Destination: library/literature/recent/Lavallee et al., 2020 - Conceptualizing Soil Organic Matter Into Particulate And Mineral‐Associated.pdf
+  → Confidence: 0%
+  → Method: doi_lookup
+  → Topic: none
+
+2025-10-22 11:44:32 | REVIEW_NEEDED | Leuthold et al., 2023 - Physical Fractionation Techniques.pdf
+  → Source: Leuthold et al., 2022 - Physical Fractionation Techniques.pdf
+  → Destination: library/literature/recent/Leuthold et al., 2023 - Physical Fractionation Techniques.pdf
+  → Confidence: 0%
+  → Method: doi_lookup
+  → Topic: none
+
+2025-10-22 11:44:35 | REVIEW_NEEDED | Gang Li et al., 2013 - Chemical Characteristics Of Physically Separated Soil Organic Matter.pdf
+  → Source: Li et al., 2013 - Chemical_Characteristics_of_Physically_Separated.4.pdf
+  → Destination: library/literature/recent/Gang Li et al., 2013 - Chemical Characteristics Of Physically Separated Soil Organic Matter.pdf
+  → Confidence: 0%
+  → Method: doi_lookup
+  → Topic: none
+
+2025-10-22 11:44:38 | REVIEW_NEEDED | Supervisor, 2001 - 11.Pdf.pdf
+  → Source: Magid et al., 2001.pdf
+  → Destination: library/literature/recent/Supervisor, 2001 - 11.Pdf.pdf
+  → Confidence: 0%
+  → Method: pdf_metadata
+  → Topic: none
+
+2025-10-22 11:44:40 | REVIEW_NEEDED | Massawe et al., 2016 - Crop Diversity.pdf
+  → Source: Massawe et al., 2012 - Crop diversity and nutritional secuirty.pdf
+  → Destination: library/literature/recent/Massawe et al., 2016 - Crop Diversity.pdf
+  → Confidence: 0%
+  → Method: doi_lookup
+  → Topic: none
+
+2025-10-22 11:44:45 | REVIEW_NEEDED | Moni et al., 2012 - Density Fractions Versus Size Separates.pdf
+  → Source: Moni et al., 2012 - Density vs. Size Fractionation.pdf
+  → Destination: library/literature/recent/Moni et al., 2012 - Density Fractions Versus Size Separates.pdf
+  → Confidence: 0%
+  → Method: doi_lookup
+  → Topic: none
+
+2025-10-22 11:44:47 | REVIEW_NEEDED | Mustafa et al., 2022 - Comparison Of Zimmermann And Six Fractionation Methods Aimed.pdf
+  → Source: Mustafa et al., 2022 - Comparison of fractionation techniques.pdf
+  → Destination: library/literature/recent/Mustafa et al., 2022 - Comparison Of Zimmermann And Six Fractionation Methods Aimed.pdf
+  → Confidence: 0%
+  → Method: doi_lookup
+  → Topic: none
+
+2025-10-22 11:47:33 | REVIEW_NEEDED | Galdos et al., 2023 - Nitrogen Fertilizer Rate Strongly Influences Sugarcane N2O Emissions.pdf
+  → Source: s10705-023-10321-w.pdf
+  → Destination: library/literature/recent/Galdos et al., 2023 - Nitrogen Fertilizer Rate Strongly Influences Sugarcane N2O Emissions.pdf
+  → Confidence: 75%
+  → Method: doi_lookup
+  → Topic: sugarcane-nitrous-oxide-emissions
+
+2025-10-22 11:47:36 | REVIEW_NEEDED | Lehmann et al., 2006 - Bio-char Enhances Long-Term Carbon Storage Potential.pdf
+  → Source: s11027-005-9006-5.pdf
+  → Destination: library/literature/recent/Lehmann et al., 2006 - Bio-char Enhances Long-Term Carbon Storage Potential.pdf
+  → Confidence: 75%
+  → Method: doi_lookup
+  → Topic: biochar-carbon-sequestration
+
+2025-10-22 11:47:40 | REVIEW_NEEDED | Warnock et al., 2007 - Biochar Enhances Mycorrhizal Interactions in Soil.pdf
+  → Source: s11104-007-9391-5.pdf
+  → Destination: library/literature/recent/Warnock et al., 2007 - Biochar Enhances Mycorrhizal Interactions in Soil.pdf
+  → Confidence: 38%
+  → Method: doi_lookup
+  → Topic: biochar-carbon-sequestration
+
+2025-10-22 11:47:44 | REVIEW_NEEDED | Unknown, 2017 - Acknowledgement Section Provides Research Context.pdf
+  → Source: s11104-017-3196-y.pdf
+  → Destination: library/literature/recent/Unknown, 2017 - Acknowledgement Section Provides Research Context.pdf
+  → Confidence: 8%
+  → Method: doi_lookup
+  → Topic: sugarcane-nitrous-oxide-emissions
+
+2025-10-22 11:47:47 | REVIEW_NEEDED | Keiblinger et al., 2023 - Plant Carbon Inputs Drive Soil Organic Matter Dynamics.pdf
+  → Source: s11104-023-06149-6.pdf
+  → Destination: library/literature/recent/Keiblinger et al., 2023 - Plant Carbon Inputs Drive Soil Organic Matter Dynamics.pdf
+  → Confidence: 26%
+  → Method: doi_lookup
+  → Topic: sugarcane-nitrous-oxide-emissions
+
+2025-10-22 11:47:56 | REVIEW_NEEDED | Samson et al., 2020 - Coarse Mineral Particles Crucial for Soil Organic Matter.pdf
+  → Source: Samson et al., 2021 - Coarse MOAM is a pivotal fraction.pdf
+  → Destination: library/literature/recent/Samson et al., 2020 - Coarse Mineral Particles Crucial for Soil Organic Matter.pdf
+  → Confidence: 24%
+  → Method: doi_lookup
+  → Topic: sugarcane-nitrous-oxide-emissions
+
+2025-10-22 11:48:00 | REVIEW_NEEDED | Schmidt et al., 2011 - Soil Organic Matter Persistence Drives Ecosystem Function.pdf
+  → Source: Schmidt et al., 2011 - Persistence of SOM as an ecosystem property.pdf
+  → Destination: library/literature/recent/Schmidt et al., 2011 - Soil Organic Matter Persistence Drives Ecosystem Function.pdf
+  → Confidence: 35%
+  → Method: doi_lookup
+  → Topic: biochar-carbon-sequestration
+
+2025-10-22 11:48:03 | REVIEW_NEEDED | Margenot et al., 2015 - Aliphatic Carbon Functional Groups Indicate Soil Organic Matter Dynamics.pdf
+  → Source: soil-organic-matter-functional-group-composition-in-relation-to-organic-carbon-nitrogen-and-phosphorus-fractions-in-organically-managed-tomato-fields.pdf
+  → Destination: library/literature/recent/Margenot et al., 2015 - Aliphatic Carbon Functional Groups Indicate Soil Organic Matter Dynamics.pdf
+  → Confidence: 20%
+  → Method: doi_lookup
+  → Topic: sugarcane-nitrous-oxide-emissions
+
+2025-10-22 11:48:07 | REVIEW_NEEDED | Soong et al., 2014 - Dissolved Organic Carbon Leaching Varies by Litter Type.pdf
+  → Source: Soong et al., 2014.pdf
+  → Destination: library/literature/recent/Soong et al., 2014 - Dissolved Organic Carbon Leaching Varies by Litter Type.pdf
+  → Confidence: 40%
+  → Method: doi_lookup
+  → Topic: sugarcane-nitrous-oxide-emissions
+
