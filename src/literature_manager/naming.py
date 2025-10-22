@@ -119,10 +119,15 @@ def generate_filename(metadata: Dict, max_length: int = 200) -> str:
     if not year:
         year = datetime.now().year
 
-    # Get title (use short_title if available from LLM, otherwise shorten)
-    if metadata.get("short_title"):
+    # Get title (prefer LLM summary, then short_title, then truncate)
+    if metadata.get("summary"):
+        # LLM-generated summary (4-10 words, key finding)
+        title_str = metadata["summary"]
+    elif metadata.get("short_title"):
+        # LLM-generated shortened title (old method)
         title_str = metadata["short_title"]
     else:
+        # Fallback: truncate title
         title = metadata.get("title", "Untitled")
         title_str = shorten_title(title)
 

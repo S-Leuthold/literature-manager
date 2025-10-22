@@ -120,3 +120,131 @@ def extract_with_llm(
     except Exception as e:
         print(f"LLM extraction error: {e}")
         return None
+
+
+ENHANCEMENT_PROMPT = """You are analyzing scientific paper metadata to create a concise summary.
+
+Given this paper's metadata:
+- **Title**: %TITLE%
+- **Abstract**: %ABSTRACT%
+- **Keywords**: %KEYWORDS%
+
+Provide:
+1. **summary**: A 4-10 word summary of the KEY FINDING or MAIN CONCEPT.
+   NOT just a shortened title - distill what the paper actually discovered or proposes.
+   Focus on the scientific contribution, not methodology.
+
+2. **suggested_topic**: A kebab-case topic name (e.g., "soil-carbon-saturation", "litter-decomposition")
+
+Examples of GOOD summaries:
+- "Litter Quality Controls Carbon Saturation"
+- "Tillage Reduces Labile Carbon Pools"
+- "Diverse Rotations Increase System Resilience"
+- "Nitrogen Availability Limits Decomposition Rates"
+
+Examples of BAD summaries (too generic or just shortened title):
+- "A Study of Soil Carbon" (too vague)
+- "Effects of Management on Organic" (truncated, not informative)
+
+Return ONLY valid JSON:
+{
+    "summary": "...",
+    "suggested_topic": "..."
+}"""
+
+
+def enhance_metadata_with_llm(
+    metadata: Dict, api_key: str, model: str = "claude-haiku-4-20250514", retry: bool = True
+) -> Dict:
+    """
+    Enhance metadata with LLM-generated summary and topic suggestion.
+
+    Takes existing metadata (from DOI, PDF metadata, etc.) and uses LLM to:
+    - Generate a concise summary (4-10 words) of the key finding
+    - Suggest a topic in kebab-case
+
+    Args:
+        metadata: Metadata dict with at minimum 'title', optionally 'abstract' and 'keywords'
+        api_key: Anthropic API key
+        model: Claude model to use
+        retry: Whether to retry once on failure
+
+    Returns:
+        Enhanced metadata dict with 'summary' and 'suggested_topic' fields added
+    """
+    # Build prompt
+    title = metadata.get("title", "")
+    abstract = metadata.get("abstract", "")
+    keywords = metadata.get("keywords", [])
+
+    if not title:
+        # Can't enhance without at least a title
+        return metadata
+
+    # Build text for LLM
+    keywords_str = ", ".join(keywords) if keywords else "None provided"
+
+    if not abstract:
+        abstract = "Not available - analyze title and keywords only"
+
+    # Truncate abstract if too long
+    if len(abstract) > 4000:
+        abstract = abstract[:4000] + "..."
+
+    prompt = ENHANCEMENT_PROMPT.replace("%TITLE%", title)
+    prompt = prompt.replace("%ABSTRACT%", abstract)
+    prompt = prompt.replace("%KEYWORDS%", keywords_str)
+
+    try:
+        # Call Claude API
+        client = Anthropic(api_key=api_key)
+
+        message = client.messages.create(
+            model=model, max_tokens=200, temperature=0, messages=[{"role": "user", "content": prompt}]
+        )
+
+        # Extract response
+        response_text = message.content[0].text
+
+        # Parse JSON response
+        try:
+            result = json.loads(response_text)
+        except json.JSONDecodeError:
+            # Try to extract JSON from response
+            import re
+
+            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group(0))
+            else:
+                raise ValueError("Could not parse JSON from LLM response")
+
+        # Validate response
+        summary = result.get("summary", "")
+        suggested_topic = result.get("suggested_topic", "")
+
+        if summary:
+            # Validate word count (flexible 4-10 words)
+            word_count = len(summary.split())
+            if 4 <= word_count <= 10:
+                metadata["summary"] = summary
+            else:
+                # Use it anyway but log warning
+                print(f"Warning: Summary has {word_count} words (expected 4-10): {summary}")
+                metadata["summary"] = summary
+
+        if suggested_topic:
+            metadata["suggested_topic"] = suggested_topic
+
+        return metadata
+
+    except Exception as e:
+        print(f"LLM enhancement error: {e}")
+
+        # Retry once if requested
+        if retry:
+            print("Retrying LLM enhancement...")
+            return enhance_metadata_with_llm(metadata, api_key, model, retry=False)
+
+        # Fallback: return metadata unchanged
+        return metadata
