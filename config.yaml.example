@@ -1,44 +1,50 @@
 # Literature Manager Configuration
-# Copy this file to config.yaml and adjust paths/settings
+# Copy this to config.yaml and customize for your setup
 
-# Paths (relative to Desktop/workshop)
-workshop_root: "/Users/samleuthold/Desktop/workshop"
+# Paths (adjust to your system)
+workshop_root: "/Users/yourusername/Desktop/workshop"
 inbox_path: "workspace/inbox"
 library_path: "library/literature"
 tools_path: ".tools/literature-manager"
 
 # Processing settings
-confidence_threshold: 0.85           # Minimum confidence for auto-filing to by-topic/
-min_papers_for_topic: 3              # Minimum papers before creating new topic
-recent_retention_days: 7             # Days to keep papers in recent/ before cleanup
-always_copy_to_recent: true          # Copy all papers to recent/ even if filed to topic
+confidence_threshold: 0.85
+min_papers_for_topic: 3
+recent_retention_days: 3
+always_copy_to_recent: true
 
-# Metadata extraction
+# Metadata extraction (tried in this order)
 preferred_methods:
-  - doi_lookup                       # Try DOI + CrossRef API first
-  - pdf_metadata                     # Try PDF metadata fields
-  - llm_parsing                      # Use LLM as fallback
+  - doi_lookup       # CrossRef API (best)
+  - pdf_metadata     # Embedded PDF metadata
+  - llm_parsing      # LLM text extraction (fallback)
 
-crossref_email: "your.email@example.com"  # Polite pool for CrossRef API
+crossref_email: "your.email@example.com"  # For CrossRef API
 
 # LLM settings
 llm_provider: "anthropic"
-llm_model: "claude-haiku-4-20250514"  # Haiku 4.5 for cost efficiency
-anthropic_api_key: "sk-ant-api03-..."  # Your Anthropic API key
+llm_model: "claude-haiku-4-5-20251001"
+# API key should be set in ../.env file as ANTHROPIC_API_KEY
 
-# Topic matching weights
+# Topic matching weights (for similarity matching)
 keyword_weight: 0.6
 author_weight: 0.2
 year_weight: 0.2
 
 # File naming
-max_title_words: 8                   # Maximum words in shortened title
-max_filename_length: 200             # Maximum total filename length
+max_title_words: 8
+max_filename_length: 200
 
 # Duplicate handling
-duplicate_action: "merge"            # Options: "merge", "skip", "prompt"
-duplicate_keep_larger: true          # Keep larger file when merging
+duplicate_action: "merge"  # or "skip"
+duplicate_keep_larger: true
 
 # Notifications
-verbose: true                        # Print detailed processing info
-notify_on_error: true               # Show errors prominently
+verbose: true
+notify_on_error: true
+
+# Zotero integration (optional)
+zotero_sync_enabled: false  # Set to true after configuring .env
+zotero_create_collections: true
+zotero_add_tags: true
+zotero_update_existing: true

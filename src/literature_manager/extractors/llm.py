@@ -1,7 +1,7 @@
 """LLM-based metadata extraction using Claude Haiku."""
 
 import json
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from anthropic import Anthropic
 
@@ -9,40 +9,52 @@ from literature_manager.extractors.text_parser import truncate_text_for_llm
 from literature_manager.utils import normalize_whitespace
 
 
-EXTRACTION_PROMPT = """You are extracting bibliographic metadata from a scientific paper.
+EXTRACTION_PROMPT = """You are a scientific literature specialist extracting bibliographic metadata from paper text.
 
-Extract the following information from the text below:
-1. **title**: Full title of the paper
-2. **authors**: List of author names (format as "Last, F." where F is first initial)
-3. **year**: Publication year (4-digit number)
-4. **abstract**: Abstract or summary of the paper (if available)
-5. **keywords**: List of scientific keywords or key concepts from the paper
-6. **short_title**: A shortened version of the title (5-8 words, title case, natural break point)
-7. **suggested_topic**: A kebab-case topic name this paper belongs to (e.g., "soil-carbon", "fractionation-methods", "spectroscopy")
+<task>
+Extract bibliographic information and create a concise summary from the paper text below.
+</task>
 
-Return your response as valid JSON with these exact keys:
+<paper_text>
+%TEXT%
+</paper_text>
+
+<instructions>
+Extract the following fields:
+- title: Full paper title
+- authors: List in format "Last, F." (first initial only)
+- year: 4-digit publication year
+- abstract: Full abstract text if present
+- keywords: List of key scientific terms and concepts
+- short_title: 4-6 word summary of KEY FINDING (use active voice: "X Controls Y", "Treatment Increases Z")
+- suggested_topic: BROAD soil science category in kebab-case (examples: soil-carbon, soil-organic-matter, soil-microbiology, nutrient-cycling)
+
+For short_title: Focus on what was DISCOVERED, not what was studied. Use strong verbs.
+For suggested_topic: Think soil science library shelves. Default to soil-related topics when possible.
+
+If a field cannot be determined:
+- Use null for title/abstract
+- Use [] for authors/keywords
+- Use current year for year
+- Use null for short_title/suggested_topic
+</instructions>
+
+<output_format>
+Return ONLY valid JSON (no other text):
 {
     "title": "...",
     "authors": ["Last1, F.", "Last2, F.", ...],
     "year": 2024,
     "abstract": "...",
     "keywords": ["keyword1", "keyword2", ...],
-    "short_title": "...",
-    "suggested_topic": "topic-name"
+    "short_title": "Finding-Focused Summary",
+    "suggested_topic": "broad-category"
 }
-
-If any field cannot be determined, use null for strings, [] for lists, or the current year for year.
-
-PAPER TEXT:
----
-%TEXT%
----
-
-Return ONLY the JSON object, no other text."""
+</output_format>"""
 
 
 def extract_with_llm(
-    pdf_text: str, api_key: str, model: str = "claude-3-5-haiku-20241022"
+    pdf_text: str, api_key: str, model: str = "claude-haiku-4-5-20251001"
 ) -> Optional[Dict]:
     """
     Extract metadata using Claude LLM.
@@ -122,56 +134,181 @@ def extract_with_llm(
         return None
 
 
-ENHANCEMENT_PROMPT = """You are analyzing scientific paper metadata to create a concise summary.
+ENHANCEMENT_PROMPT = """You are a scientific literature specialist categorizing soil science papers using a FIXED TAXONOMY.
 
-Given this paper's metadata:
-- **Title**: %TITLE%
-- **Abstract**: %ABSTRACT%
-- **Keywords**: %KEYWORDS%
+<task>
+1. Create a 4-6 word summary of the KEY FINDING
+2. Select topic(s) from the ALLOWED TOPICS list below (see policy for count)
+</task>
 
-Provide:
-1. **summary**: A 4-10 word summary of the KEY FINDING or MAIN CONCEPT.
-   NOT just a shortened title - distill what the paper actually discovered or proposes.
-   Focus on the scientific contribution, not methodology.
+<paper_metadata>
+<title>%TITLE%</title>
+<abstract>%ABSTRACT%</abstract>
+<keywords>%KEYWORDS%</keywords>
+</paper_metadata>
 
-2. **suggested_topic**: A kebab-case topic name (e.g., "soil-carbon-saturation", "litter-decomposition")
+<summary_instructions>
+Create a 6-8 word summary that states the MAIN FINDING (what was discovered).
 
-Examples of GOOD summaries:
-- "Litter Quality Controls Carbon Saturation"
-- "Tillage Reduces Labile Carbon Pools"
-- "Diverse Rotations Increase System Resilience"
-- "Nitrogen Availability Limits Decomposition Rates"
+RULES:
+1. State the finding as a declarative sentence (6-8 words)
+2. Use active verbs (controls, increases, limits, determines, reveals, drives, protects, reduces)
+3. Front-load the most distinctive information in first 3 words
+4. Be specific enough to distinguish from similar papers
+5. Include numbers or context if it adds clarity
+6. Must be exactly 6-8 words in Title Case
 
-Examples of BAD summaries (too generic or just shortened title):
-- "A Study of Soil Carbon" (too vague)
-- "Effects of Management on Organic" (truncated, not informative)
+GOOD EXAMPLES:
+- "Mineral Sorption Limits Long-Term Soil Carbon Storage" (7 words)
+- "No-Till Management Increases Soil Aggregate Stability" (6 words)
+- "Soil pH Determines Phosphorus Availability Across Regions" (7 words)
+- "Severe Drought Reduces Microbial Biomass By 60%" (7 words)
+- "Clay Minerals Protect Carbon Through Surface Adsorption" (7 words)
 
-Return ONLY valid JSON:
+BAD EXAMPLES:
+- "Sorption Limits Carbon" (too short, not specific)
+- "How Soil Carbon Is Protected" (question format)
+- "Tillage Impacts Soil Carbon Storage" (vague verb "impacts")
+- "Study Shows NIRS Predicts Properties Variably" (adverb + meta language)
+
+EXCEPTIONS (use method-focused instead):
+- Methods papers: "NIRS Successfully Predicts Soil Phosphorus Availability"
+- Reviews: "Meta-Analysis Reveals Variable Biochar Benefits Across Studies"
+- Multiple findings: "Temperature And Moisture Jointly Control Soil Respiration"
+</summary_instructions>
+
+<topic_selection_process>
+STEP 1: Identify Primary Research Contribution
+Ask: "What new knowledge does this paper generate?"
+- Focus on the FINDINGS, not the study design
+- Ignore contextual variables (temperature, moisture, site characteristics)
+- Distinguish between what was STUDIED vs what was USED as a tool
+
+STEP 2: Determine Topic Type
+Is this contribution about:
+- A substantive soil science topic? → Select that topic, proceed to STEP 3
+- A methodological innovation? → Select method topic, proceed to STEP 3
+- Equally about both? → Select both (rare, see Topic Count Policy below)
+- No clear fit? → Go to STEP 5
+
+STEP 3: Check for Method Topic (Secondary)
+Add a method topic from "Analytical Methods" category ONLY IF:
+✓ Method is named in the title, OR
+✓ Method development/validation is a stated objective, OR
+✓ Paper presents novel methodological insights (not just uses standard protocol)
+
+Do NOT add method topic if:
+✗ Method is standard analytical procedure used to generate data
+✗ Method only mentioned in materials/methods section
+✗ Multiple routine methods used (e.g., standard pH, texture analysis)
+
+Exception: If paper is ONLY about comparing/validating methods:
+- Method topic is PRIMARY (only topic)
+- Do not add substantive topic unless findings have clear implications
+
+STEP 4: Apply Topic Selection Rules
+Topic Count Policy:
+- DEFAULT: Select 2 topics when paper has multiple clear research dimensions (~60% of papers)
+- Select 1 topic when paper has singular, focused research question (~35% of papers)
+- Select 2 topics IF:
+  • Paper addresses two distinct research areas (method + substance, or two substantive topics), OR
+  • Each topic receives ≥30% of the research attention, OR
+  • Paper explicitly mentions both areas in title/objectives
+  Common 2-topic cases: "soil-spectroscopy|nutrient-cycling" or "litter-decomposition|nitrogen-cycling"
+- Select 3 topics ONLY IF paper explicitly compares or integrates three distinct research areas (RARE, <5%)
+- If unsure between 1 or 2 topics → default to 2
+
+Redundancy Rule:
+Do NOT assign multiple topics if hierarchically related:
+❌ soil-carbon + soil-organic-matter (unless paper explicitly distinguishes them)
+❌ maom + pom (unless paper directly compares both fractions)
+❌ General topic + its routine measurement (e.g., soil-carbon + soil-respiration)
+
+STEP 5: Handle Edge Cases
+- REVIEW PAPERS: Broad synthesis spanning 3+ topics without primary focus → "needs-review"
+- COMPARATIVE STUDIES: Comparing two substantive topics with equal weight → both topics apply
+- METHODOLOGICAL PAPERS: New technique for topic X → "method|topic-x"; Improved protocol → "topic-x" only
+- CONTEXTUAL VARIABLES: Papers studying how temperature/moisture affects topic X → topic is X, not the variable
+
+If NO topic fits well: Return "needs-review" as both summary and topic
+</topic_selection_process>
+
+%TOPICS%
+
+<examples>
+Example 1: Method + Substantive (2 topics)
+Title: FTIR spectroscopy reveals functional group changes in mineral-associated organic matter
+Output: {"summary": "FTIR Reveals MAOM Functional Groups", "suggested_topic": "soil-spectroscopy|maom"}
+Reasoning: Method in title + novel insights about MAOM → both topics
+
+Example 2: Single Substantive Topic (most common)
+Title: Cover crops increase soil carbon and reduce erosion
+Output: {"summary": "Cover Crops Increase Carbon, Reduce Erosion", "suggested_topic": "cover-crops"}
+Reasoning: Primary focus is cover crops. Carbon/erosion are outcomes, not separate foci.
+
+Example 3: Contextual Variable (1 topic)
+Title: Temperature sensitivity of MAOM decomposition
+Output: {"summary": "Temperature Accelerates MAOM Decomposition", "suggested_topic": "maom"}
+Reasoning: Focus is MAOM dynamics. Temperature is experimental variable, not a topic.
+
+Example 4: Legitimate Two Substantive Topics
+Title: Comparing MAOM and POM responses to long-term fertilization
+Output: {"summary": "Fertilization Differentially Affects MAOM and POM", "suggested_topic": "maom|pom"}
+Reasoning: Paper explicitly compares both fractions with equal weight (≥40% each)
+
+Example 5: Needs Review
+Title: Soil organic matter dynamics: A comprehensive review
+Output: {"summary": "needs-review", "suggested_topic": "needs-review"}
+Reasoning: Broad review spanning multiple topics without single primary focus
+</examples>
+
+<output_format>
+Return ONLY valid JSON with NO additional text:
 {
-    "summary": "...",
-    "suggested_topic": "..."
-}"""
+    "summary": "4-6 Word Finding in Title Case",
+    "suggested_topic": "topic-one|topic-two"
+}
+
+Rules:
+- Use exact topic slugs from ALLOWED TOPICS (case-sensitive)
+- Separate multiple topics with pipe: maom|pom (NO spaces)
+- Summary must be exactly 4-6 words in Title Case
+- For needs-review: {"summary": "needs-review", "suggested_topic": "needs-review"}
+</output_format>
+
+CRITICAL REMINDERS:
+1. You MUST select from ALLOWED TOPICS list - do NOT create new topics
+2. Most papers get 2 topics when multiple dimensions exist - default to 2 if uncertain
+3. Look for secondary topics: method papers usually pair with substantive topic, process papers often pair with material/system
+4. Contextual variables (temperature, moisture, site) are NOT topics
+5. When in doubt, use "needs-review" rather than forcing a poor fit"""
 
 
 def enhance_metadata_with_llm(
-    metadata: Dict, api_key: str, model: str = "claude-3-5-haiku-20241022", retry: bool = True
+    metadata: Dict, api_key: str, model: str = "claude-haiku-4-5-20251001", retry: bool = True, existing_topics: List[str] = None
 ) -> Dict:
     """
-    Enhance metadata with LLM-generated summary and topic suggestion.
+    Enhance metadata with LLM-generated summary and topic suggestion using FIXED TAXONOMY.
 
     Takes existing metadata (from DOI, PDF metadata, etc.) and uses LLM to:
-    - Generate a concise summary (4-10 words) of the key finding
-    - Suggest a topic in kebab-case
+    - Generate a concise summary (4-6 words) of the key finding
+    - Select topic(s) from the fixed taxonomy in topics.yml
 
     Args:
         metadata: Metadata dict with at minimum 'title', optionally 'abstract' and 'keywords'
         api_key: Anthropic API key
         model: Claude model to use
         retry: Whether to retry once on failure
+        existing_topics: Ignored (kept for backwards compatibility)
 
     Returns:
         Enhanced metadata dict with 'summary' and 'suggested_topic' fields added
     """
+    from literature_manager.taxonomy import TopicTaxonomy
+
+    # Load taxonomy
+    taxonomy = TopicTaxonomy()
+
     # Build prompt
     title = metadata.get("title", "")
     abstract = metadata.get("abstract", "")
@@ -191,9 +328,13 @@ def enhance_metadata_with_llm(
     if len(abstract) > 4000:
         abstract = abstract[:4000] + "..."
 
+    # Get formatted taxonomy for prompt
+    topics_section = taxonomy.format_for_prompt()
+
     prompt = ENHANCEMENT_PROMPT.replace("%TITLE%", title)
     prompt = prompt.replace("%ABSTRACT%", abstract)
     prompt = prompt.replace("%KEYWORDS%", keywords_str)
+    prompt = prompt.replace("%TOPICS%", topics_section)
 
     try:
         # Call Claude API
@@ -224,17 +365,39 @@ def enhance_metadata_with_llm(
         suggested_topic = result.get("suggested_topic", "")
 
         if summary:
-            # Validate word count (flexible 4-10 words)
+            # Validate word count (prefer 4-6 words, accept up to 8)
             word_count = len(summary.split())
-            if 4 <= word_count <= 10:
-                metadata["summary"] = summary
-            else:
-                # Use it anyway but log warning
-                print(f"Warning: Summary has {word_count} words (expected 4-10): {summary}")
-                metadata["summary"] = summary
+            if word_count > 8:
+                print(f"Warning: Summary too long ({word_count} words, prefer 4-6): {summary}")
+            metadata["summary"] = summary
 
         if suggested_topic:
-            metadata["suggested_topic"] = suggested_topic
+            # Validate topics against taxonomy
+            topics_list = suggested_topic.split("|")
+            valid_topics, invalid_topics = taxonomy.validate_topics(topics_list)
+
+            if invalid_topics:
+                print(f"Warning: Invalid topics suggested by LLM: {invalid_topics}")
+                print(f"  Paper: {title[:60]}...")
+                # Keep only valid topics
+                if valid_topics:
+                    metadata["suggested_topic"] = "|".join(valid_topics)
+                    print(f"  Using valid topics: {valid_topics}")
+                else:
+                    print(f"  No valid topics - flagging for review")
+                    metadata["suggested_topic"] = "needs-review"
+            else:
+                # All topics valid
+                metadata["suggested_topic"] = suggested_topic
+
+                # Check pairing rules if multiple topics
+                if len(valid_topics) > 1:
+                    for i in range(len(valid_topics)):
+                        for j in range(i + 1, len(valid_topics)):
+                            allowed, reason = taxonomy.check_pairing_allowed(valid_topics[i], valid_topics[j])
+                            if not allowed:
+                                print(f"Warning: Disallowed topic pairing: {reason}")
+                                print(f"  Paper: {title[:60]}...")
 
         return metadata
 

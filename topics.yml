@@ -1,0 +1,682 @@
+# Soil Biogeochemistry Literature Topic Taxonomy
+# Version 2.0 - Fixed taxonomy for consistent paper categorization
+#
+# Each topic has:
+#   - slug: kebab-case identifier used for folders
+#   - name: Human-readable display name
+#   - description: Definition for LLM and human classification
+#   - category: Broad grouping for organization
+#   - keywords: Common terms that map to this topic (for alias matching)
+
+categories:
+  - soil-carbon-and-organic-matter
+  - analytical-methods
+  - biogeochemical-processes
+  - agricultural-systems
+  - environmental-and-climate
+  - soil-properties-and-processes
+  - social-science-and-policy
+
+topics:
+  # ============================================================================
+  # SOIL CARBON & ORGANIC MATTER (8 topics)
+  # ============================================================================
+
+  - slug: soil-carbon
+    name: Soil Carbon
+    category: soil-carbon-and-organic-matter
+    description: Quantitative studies of soil carbon stocks, fluxes, and budgets, including sequestration and climate mitigation.
+    keywords:
+      - SOC
+      - soil carbon
+      - carbon stocks
+      - carbon sequestration
+      - carbon storage
+      - C stocks
+
+  - slug: soil-organic-matter
+    name: Soil Organic Matter
+    category: soil-carbon-and-organic-matter
+    description: Qualitative SOM dynamics—composition, chemistry, turnover, and formation/destruction pathways.
+    keywords:
+      - SOM
+      - organic matter
+      - humus
+      - humification
+      - OM chemistry
+
+  - slug: maom
+    name: MAOM
+    category: soil-carbon-and-organic-matter
+    description: Mineral-associated organic matter formation, stabilization, and reactivity.
+    keywords:
+      - MAOM
+      - mineral-associated
+      - mineral association
+      - silt-clay
+      - heavy fraction
+
+  - slug: pom
+    name: POM
+    category: soil-carbon-and-organic-matter
+    description: Particulate organic matter dynamics, decomposition, and turnover.
+    keywords:
+      - POM
+      - particulate
+      - light fraction
+      - coarse fraction
+      - free OM
+
+  - slug: aggregates
+    name: Aggregates
+    category: soil-carbon-and-organic-matter
+    description: Soil aggregation, structure, and aggregate-associated carbon protection.
+    keywords:
+      - aggregates
+      - aggregation
+      - soil structure
+      - macroaggregates
+      - microaggregates
+      - aggregate stability
+
+  - slug: dissolved-organic-matter
+    name: Dissolved Organic Matter
+    category: soil-carbon-and-organic-matter
+    description: DOC/DOM production, transport, and microbial utilization.
+    keywords:
+      - DOC
+      - DOM
+      - dissolved organic carbon
+      - water-extractable
+      - leachate
+
+  - slug: pyrogenic-carbon
+    name: Pyrogenic Carbon
+    category: soil-carbon-and-organic-matter
+    description: Biochar, charcoal, and black carbon formation and persistence.
+    keywords:
+      - biochar
+      - charcoal
+      - black carbon
+      - pyrogenic
+      - PyC
+      - BC
+
+  - slug: priming-effects
+    name: Priming Effects
+    category: soil-carbon-and-organic-matter
+    description: Priming and co-metabolism effects that stimulate or suppress SOC decomposition.
+    keywords:
+      - priming
+      - co-metabolism
+      - positive priming
+      - negative priming
+      - rhizosphere priming
+
+  # ============================================================================
+  # ANALYTICAL METHODS (7 topics)
+  # ============================================================================
+
+  - slug: soil-spectroscopy
+    name: Soil Spectroscopy
+    category: analytical-methods
+    description: FTIR, MIR, NIR, or Raman spectroscopy applied to soils and organic matter.
+    keywords:
+      - FTIR
+      - MIR
+      - NIR
+      - spectroscopy
+      - infrared
+      - Raman
+      - NIRS
+      - MIRS
+
+  - slug: soil-fractionation
+    name: Soil Fractionation
+    category: analytical-methods
+    description: Density, size, or chemical fractionation for isolating soil pools.
+    keywords:
+      - fractionation
+      - density separation
+      - size fractionation
+      - SPT
+      - heavy fraction
+      - light fraction
+
+  - slug: isotope-methods
+    name: Isotope Methods
+    category: analytical-methods
+    description: Isotope labeling, tracing, or natural abundance for C/N cycling studies.
+    keywords:
+      - isotope
+      - 13C
+      - 15N
+      - 14C
+      - labeling
+      - tracer
+      - natural abundance
+      - delta 13C
+
+  - slug: molecular-characterization
+    name: Molecular Characterization
+    category: analytical-methods
+    description: Pyrolysis-GC/MS, NMR, mass spectrometry, and other molecular-level OM characterization methods.
+    keywords:
+      - pyrolysis
+      - NMR
+      - mass spectrometry
+      - Py-GC/MS
+      - FTICR
+      - molecular
+      - biomarkers
+
+  - slug: remote-sensing
+    name: Remote Sensing
+    category: analytical-methods
+    description: Satellite, aerial, or proximal sensing of soil and landscape properties.
+    keywords:
+      - remote sensing
+      - satellite
+      - Landsat
+      - Sentinel
+      - aerial
+      - UAV
+      - proximal sensing
+
+  - slug: modeling-and-prediction
+    name: Modeling and Prediction
+    category: analytical-methods
+    description: Statistical, machine learning, or process-based models for soil property prediction or C cycling dynamics.
+    keywords:
+      - modeling
+      - machine learning
+      - random forest
+      - regression
+      - prediction
+      - neural network
+      - process model
+
+  - slug: data-synthesis
+    name: Data Synthesis
+    category: analytical-methods
+    description: Meta-analyses, harmonized datasets, and database/mapping products.
+    keywords:
+      - meta-analysis
+      - database
+      - synthesis
+      - harmonization
+      - data compilation
+      - mapping
+
+  - slug: statistical-methods
+    name: Statistical Methods
+    category: analytical-methods
+    description: Statistical theory, experimental design, hypothesis testing, and quantitative methods development.
+    keywords:
+      - statistics
+      - statistical methods
+      - hypothesis testing
+      - experimental design
+      - mixed models
+      - causality
+      - causal inference
+      - structural equation
+      - ensemble methods
+      - alpha
+      - p-value
+
+  # ============================================================================
+  # BIOGEOCHEMICAL PROCESSES (8 topics)
+  # ============================================================================
+
+  - slug: microbial-processes
+    name: Microbial Processes
+    category: biogeochemical-processes
+    description: Microbial ecology, enzyme activity, and microbially mediated C/N transformations.
+    keywords:
+      - microbes
+      - microbial
+      - bacteria
+      - fungi
+      - enzymes
+      - microbial community
+      - microbiome
+
+  - slug: nitrogen-cycling
+    name: Nitrogen Cycling
+    category: biogeochemical-processes
+    description: N mineralization, immobilization, nitrification, and denitrification.
+    keywords:
+      - nitrogen
+      - N cycling
+      - mineralization
+      - nitrification
+      - denitrification
+      - immobilization
+      - N2O
+
+  - slug: nutrient-cycling
+    name: Nutrient Cycling
+    category: biogeochemical-processes
+    description: Cycling of non-N nutrients such as P, K, S, and micronutrients.
+    keywords:
+      - phosphorus
+      - potassium
+      - sulfur
+      - nutrients
+      - P cycling
+      - K cycling
+      - micronutrients
+
+  - slug: litter-decomposition
+    name: Litter Decomposition
+    category: biogeochemical-processes
+    description: Plant residue and litter decomposition processes.
+    keywords:
+      - litter
+      - decomposition
+      - residue
+      - leaf litter
+      - plant litter
+      - breakdown
+
+  - slug: rhizosphere-processes
+    name: Rhizosphere Processes
+    category: biogeochemical-processes
+    description: Root-soil interactions, rhizodeposition, and mycorrhizal symbioses.
+    keywords:
+      - rhizosphere
+      - root
+      - rhizodeposition
+      - mycorrhizae
+      - root exudates
+      - plant-soil
+
+  - slug: soil-respiration
+    name: Soil Respiration
+    category: biogeochemical-processes
+    description: CO₂ efflux, heterotrophic respiration, and soil metabolic fluxes.
+    keywords:
+      - respiration
+      - CO2 efflux
+      - heterotrophic
+      - soil CO2
+      - flux
+      - metabolism
+
+  - slug: stabilization-mechanisms
+    name: Stabilization Mechanisms
+    category: biogeochemical-processes
+    description: Sorption, occlusion, mineral association, and organo-mineral complexation mechanisms.
+    keywords:
+      - stabilization
+      - sorption
+      - occlusion
+      - protection
+      - persistence
+      - mineral protection
+
+  - slug: weathering-and-mineral-transformation
+    name: Weathering and Mineral Transformation
+    category: biogeochemical-processes
+    description: Mineral surface evolution, pedogenesis, and biogeochemical weathering processes.
+    keywords:
+      - weathering
+      - pedogenesis
+      - mineral transformation
+      - soil formation
+      - parent material
+
+  # ============================================================================
+  # AGRICULTURAL SYSTEMS (9 topics)
+  # ============================================================================
+
+  - slug: tillage
+    name: Tillage
+    category: agricultural-systems
+    description: Conventional, reduced, and no-till management impacts on soil.
+    keywords:
+      - tillage
+      - no-till
+      - conservation tillage
+      - plowing
+      - reduced tillage
+
+  - slug: cover-crops
+    name: Cover Crops
+    category: agricultural-systems
+    description: Cover crop effects on soil health, C/N cycling, and management.
+    keywords:
+      - cover crops
+      - green manure
+      - winter cover
+      - catch crops
+
+  - slug: crop-rotation
+    name: Crop Rotation
+    category: agricultural-systems
+    description: Crop sequence, diversification, and rotation intensity effects.
+    keywords:
+      - crop rotation
+      - rotation
+      - diversification
+      - crop sequence
+      - monoculture
+
+  - slug: organic-and-sustainable-agriculture
+    name: Organic and Sustainable Agriculture
+    category: agricultural-systems
+    description: Organic and sustainability-focused production systems, including amendments.
+    keywords:
+      - organic agriculture
+      - organic farming
+      - sustainable agriculture
+      - regenerative
+      - agroecological
+
+  - slug: precision-agriculture
+    name: Precision Agriculture
+    category: agricultural-systems
+    description: Variable rate, yield mapping, and site-specific management.
+    keywords:
+      - precision agriculture
+      - variable rate
+      - yield mapping
+      - site-specific
+      - precision farming
+
+  - slug: soil-amendments
+    name: Soil Amendments
+    category: agricultural-systems
+    description: Compost, manure, biosolids, mineral fertilizers (non-biochar).
+    keywords:
+      - compost
+      - manure
+      - fertilizer
+      - amendments
+      - biosolids
+      - lime
+
+  - slug: cropping-intensity
+    name: Cropping Intensity
+    category: agricultural-systems
+    description: Continuous cropping, fallow cycles, and multi-cropping systems.
+    keywords:
+      - cropping intensity
+      - continuous cropping
+      - fallow
+      - double cropping
+      - intercropping
+
+  - slug: irrigation
+    name: Irrigation
+    category: agricultural-systems
+    description: Irrigation, drainage, and fertigation effects on soil processes.
+    keywords:
+      - irrigation
+      - drainage
+      - fertigation
+      - water management
+      - drip irrigation
+
+  - slug: agroecology
+    name: Agroecology
+    category: agricultural-systems
+    description: System design, biodiversity, and ecological intensification in agriculture.
+    keywords:
+      - agroecology
+      - biodiversity
+      - ecological intensification
+      - agroecosystem
+      - polyculture
+
+  - slug: yield-stability
+    name: Yield Stability
+    category: agricultural-systems
+    description: Temporal and spatial yield variability, stability analysis, and risk management in crop production.
+    keywords:
+      - yield stability
+      - yield variability
+      - temporal stability
+      - spatial variability
+      - production risk
+      - yield consistency
+      - inter-annual variation
+
+  # ============================================================================
+  # ENVIRONMENTAL & CLIMATE (7 topics)
+  # ============================================================================
+
+  - slug: climate-change
+    name: Climate Change
+    category: environmental-and-climate
+    description: Climate change impacts, adaptation, and mitigation related to soils.
+    keywords:
+      - climate change
+      - global warming
+      - climate mitigation
+      - adaptation
+      - greenhouse gas
+
+  - slug: soil-erosion
+    name: Soil Erosion
+    category: environmental-and-climate
+    description: Water and wind erosion, soil conservation, and landscape degradation.
+    keywords:
+      - erosion
+      - soil loss
+      - sediment
+      - water erosion
+      - wind erosion
+      - conservation
+
+  - slug: land-use-change
+    name: Land Use Change
+    category: environmental-and-climate
+    description: Land conversion (e.g., forest → cropland) and its effects on soil properties.
+    keywords:
+      - land use change
+      - deforestation
+      - conversion
+      - afforestation
+      - grassland conversion
+
+  - slug: wetland-soils
+    name: Wetland Soils
+    category: environmental-and-climate
+    description: Wetland hydrology, drainage, and anaerobic soil biogeochemistry.
+    keywords:
+      - wetland
+      - hydric soils
+      - anaerobic
+      - waterlogged
+      - peatland
+      - marsh
+
+  - slug: fire-ecology
+    name: Fire Ecology
+    category: environmental-and-climate
+    description: Wildfire and prescribed burning effects on soils and carbon.
+    keywords:
+      - fire
+      - wildfire
+      - prescribed burn
+      - burning
+      - fire effects
+
+  - slug: permafrost-soils
+    name: Permafrost Soils
+    category: environmental-and-climate
+    description: Freeze–thaw dynamics, cryoturbation, and Arctic/subarctic soil processes.
+    keywords:
+      - permafrost
+      - Arctic
+      - freeze-thaw
+      - cryoturbation
+      - tundra
+
+  - slug: soil-contamination
+    name: Soil Contamination
+    category: environmental-and-climate
+    description: Heavy metals, pesticides, and pollutant impacts on soil biogeochemistry.
+    keywords:
+      - contamination
+      - heavy metals
+      - pesticides
+      - pollution
+      - remediation
+      - toxicity
+
+  # ============================================================================
+  # SOIL PROPERTIES & PROCESSES (5 topics)
+  # ============================================================================
+
+  - slug: soil-texture
+    name: Soil Texture
+    category: soil-properties-and-processes
+    description: Particle-size effects, surface area, and texture-dependent processes.
+    keywords:
+      - texture
+      - clay
+      - sand
+      - silt
+      - particle size
+
+  - slug: soil-moisture
+    name: Soil Moisture
+    category: soil-properties-and-processes
+    description: Water retention, drought, saturation, and hydrological effects.
+    keywords:
+      - moisture
+      - water content
+      - drought
+      - saturation
+      - water retention
+
+  - slug: soil-temperature
+    name: Soil Temperature
+    category: soil-properties-and-processes
+    description: Temperature sensitivity, seasonal dynamics, and warming experiments.
+    keywords:
+      - temperature
+      - warming
+      - temperature sensitivity
+      - Q10
+      - seasonal
+
+  - slug: redox-processes
+    name: Redox Processes
+    category: soil-properties-and-processes
+    description: Anaerobic biogeochemistry, reduction–oxidation reactions, and electron acceptors.
+    keywords:
+      - redox
+      - reduction
+      - oxidation
+      - anaerobic
+      - electron acceptors
+
+  - slug: soil-mineralogy
+    name: Soil Mineralogy
+    category: soil-properties-and-processes
+    description: Clay type, Fe/Al oxides, and mineral surface reactivity.
+    keywords:
+      - mineralogy
+      - clay minerals
+      - iron oxides
+      - aluminum oxides
+      - mineral surface
+
+  # ============================================================================
+  # SOCIAL SCIENCE & POLICY (5 topics)
+  # ============================================================================
+
+  - slug: farmer-adoption
+    name: Farmer Adoption
+    category: social-science-and-policy
+    description: Adoption barriers, behavioral economics, and decision-making in soil management.
+    keywords:
+      - adoption
+      - farmer behavior
+      - decision making
+      - barriers
+      - behavioral economics
+
+  - slug: agricultural-policy
+    name: Agricultural Policy
+    category: social-science-and-policy
+    description: Policy impacts, incentives, and regulatory frameworks.
+    keywords:
+      - policy
+      - regulation
+      - incentives
+      - programs
+      - legislation
+
+  - slug: agricultural-economics
+    name: Agricultural Economics
+    category: social-science-and-policy
+    description: Profitability, cost-benefit analyses, and market dynamics.
+    keywords:
+      - economics
+      - profitability
+      - cost-benefit
+      - market
+      - revenue
+
+  - slug: ecosystem-services
+    name: Ecosystem Services
+    category: social-science-and-policy
+    description: Valuation, payment schemes, and multifunctionality of soils.
+    keywords:
+      - ecosystem services
+      - valuation
+      - payments
+      - PES
+      - multifunctionality
+
+  - slug: soil-health-assessment
+    name: Soil Health Assessment
+    category: social-science-and-policy
+    description: Indicators, scoring frameworks, and assessment of soil health/quality.
+    keywords:
+      - soil health
+      - soil quality
+      - indicators
+      - assessment
+      - scoring
+
+# ==============================================================================
+# PAIRING RULES
+# ==============================================================================
+# Rules for when papers can be assigned multiple topics
+
+pairing_rules:
+  # Disallowed pairs (too redundant)
+  disallowed:
+    - [soil-carbon, soil-organic-matter]  # Too similar - use one or the other
+    # Note: maom|pom removed - legitimate when papers directly compare both fractions
+
+  # Encouraged pairs (method + substance)
+  encouraged:
+    - category: analytical-methods
+      with: any  # Methods can pair with any substantive topic
+
+  # Maximum topics per paper
+  max_topics: 2
+  rare_max_topics: 3  # Only in exceptional cases
+
+# ==============================================================================
+# VALIDATION RULES
+# ==============================================================================
+
+validation:
+  # Minimum papers needed to justify creating a new topic
+  new_topic_threshold: 10
+
+  # Topics that should NOT be created (contextual factors)
+  forbidden_patterns:
+    - "*-sensitivity"  # e.g., temperature-sensitivity (use soil-temperature)
+    - "*-effects"      # e.g., moisture-effects (use soil-moisture)
+    - "tropical-*"     # Geographic modifiers
+    - "temperate-*"
+    - "*-region"

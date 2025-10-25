@@ -76,7 +76,25 @@ def process_single_pdf(pdf_path: Path, config, dry_run: bool = False, verbose: b
         print_info(f"Processing: {pdf_path.name}")
 
     try:
-        # Extract metadata
+        # Quick duplicate check BEFORE expensive metadata extraction
+        # Try to get DOI quickly from PDF metadata first
+        from literature_manager.extractors.doi import extract_doi_from_pdf
+        quick_doi = extract_doi_from_pdf(pdf_path)
+
+        if quick_doi:
+            # Check if this DOI already exists
+            from literature_manager.operations import check_duplicate_by_doi, load_index
+            index = load_index(config.index_path)
+            existing = check_duplicate_by_doi(quick_doi, index)
+
+            if existing:
+                print_warning(f"  Duplicate detected (doi): {existing}")
+                if not dry_run and pdf_path.exists():
+                    pdf_path.unlink()
+                    print_info("  Duplicate deleted, skipping")
+                return False
+
+        # Extract full metadata (includes LLM enhancement)
         if verbose:
             click.echo("  Extracting metadata...")
         metadata = extract_metadata(pdf_path, config)
@@ -122,27 +140,29 @@ def process_single_pdf(pdf_path: Path, config, dry_run: bool = False, verbose: b
         if verbose:
             click.echo(f"  New name: {filename}")
 
-        # Match topic
-        profiles = load_topic_profiles(config.topic_profiles_path)
-        topic, confidence = match_topic(metadata, profiles, config.data)
+        # Get LLM-suggested topics (pipe-separated list)
+        suggested_topics_str = metadata.get("suggested_topic", "")
+        topics = [t.strip() for t in suggested_topics_str.split("|") if t.strip()] if suggested_topics_str else []
 
-        # Get suggested topic from LLM if available
-        suggested_topic = metadata.get("suggested_topic")
-
-        if topic:
+        if topics:
             if verbose:
-                click.echo(f"  Matched topic: {topic} ({confidence:.0%} confidence)")
-        elif suggested_topic:
-            if verbose:
-                click.echo(f"  Suggested topic (LLM): {suggested_topic}")
-            topic = suggested_topic
-            confidence = 0.75  # Medium confidence for LLM suggestions
+                if len(topics) == 1:
+                    click.echo(f"  Topic: {topics[0]}")
+                else:
+                    # Show primary topic and additional topics
+                    click.echo(f"  Primary topic: {topics[0]}")
+                    click.echo(f"  Also in: {', '.join(topics[1:])}")
+            # Use first topic as primary
+            topic = topics[0]
+            confidence = 0.85  # High confidence for LLM suggestions
         else:
             if verbose:
-                click.echo(f"  No topic match (confidence too low)")
+                click.echo(f"  No topic suggested")
+            topic = None
+            confidence = 0.0
 
-        # Determine destination
-        primary_dest, secondary_dests = determine_destination(metadata, topic, confidence, config)
+        # Determine destination (pass all topics for multi-topic symlinks)
+        primary_dest, secondary_dests = determine_destination(metadata, topics, confidence, config)
 
         if verbose:
             click.echo(f"  Destination: {primary_dest.relative_to(config.workshop_root)}")
@@ -151,20 +171,15 @@ def process_single_pdf(pdf_path: Path, config, dry_run: bool = False, verbose: b
             print_success(f"  [DRY RUN] Would move to: {primary_dest}")
             return True
 
-        # Move and rename file
+        # Move and rename file (creates symlinks in other topic folders)
         final_path = move_and_rename_file(pdf_path, primary_dest, filename, secondary_dests)
 
-        # Copy to recent if configured and not already in recent
-        if config.get("always_copy_to_recent") and final_path.parent != config.recent_path:
+        # Always copy to recent/ for 3-day window (unless already in recent)
+        if primary_dest != config.recent_path:
             copy_to_recent(final_path, config.recent_path)
 
-        # Update topic profile
-        if topic:
-            profiles = update_topic_profile(topic, metadata, profiles)
-            save_topic_profiles(profiles, config.topic_profiles_path)
-
         # Update index
-        metadata["matched_topic"] = topic
+        metadata["topics"] = topics  # Store all topics
         metadata["topic_confidence"] = confidence
         update_index(metadata, final_path, config)
 
@@ -180,6 +195,16 @@ def process_single_pdf(pdf_path: Path, config, dry_run: bool = False, verbose: b
             method=metadata.get("extraction_method"),
             topic=topic or "none",
         )
+
+        # Upload to Zotero (if enabled)
+        if not dry_run and config.get("zotero_sync_enabled", False):
+            try:
+                from literature_manager.zotero_sync import ZoteroSync
+                zot_sync = ZoteroSync()
+                zot_sync.upload_paper(metadata, final_path, topics)
+            except Exception as e:
+                print_warning(f"  Zotero upload failed: {e}")
+                # Don't fail the whole process if Zotero upload fails
 
         print_success(f"  Processed successfully!")
         return True
@@ -300,6 +325,23 @@ def watch(ctx, verbose):
 
     print_info(f"Watching inbox: {config.inbox_path}")
     print_info("Press Ctrl+C to stop\n")
+
+    # Validate and repair index before starting
+    from literature_manager.index_validator import validate_and_repair_index
+    files_checked, repairs = validate_and_repair_index(config, verbose=verbose)
+    if repairs > 0:
+        print_info(f"✓ Index validated: {repairs} path(s) repaired\n")
+
+    # Process any existing PDFs in inbox before starting watch
+    existing_pdfs = list(config.inbox_path.glob("*.pdf"))
+    if existing_pdfs:
+        print_info(f"Found {len(existing_pdfs)} existing PDFs in inbox, processing...\n")
+        for pdf_path in existing_pdfs:
+            if pdf_path.name not in processed_files:
+                click.echo(f"\n{Fore.YELLOW}Processing existing PDF: {pdf_path.name}{Style.RESET_ALL}")
+                processed_files.add(pdf_path.name)
+                process_single_pdf(pdf_path, config, dry_run=False, verbose=verbose)
+        print_info(f"\n✓ Finished processing existing files, now watching for new ones...\n")
 
     event_handler = PDFHandler()
     observer = Observer()

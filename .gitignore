@@ -42,10 +42,22 @@ htmlcov/
 config.yaml
 .env
 
-# Literature manager data
-.tools/literature-manager/.literature-index.json
-.tools/literature-manager/.literature-log.txt
-.tools/literature-manager/.topic-profiles.json
+# Literature manager data files
+.literature-index.json
+.literature-log.txt
+.topic-profiles.json
+
+# Logs
+logs/
+*.log
+
+# Backups
+*.backup*.json
+
+# Personal helper scripts (not part of core package)
+nuke_zotero.py
+bulk_upload_to_zotero.py
+sort_my_publications.py
 
 # macOS
 .DS_Store

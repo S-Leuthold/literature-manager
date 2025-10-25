@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Service label (unique identifier) -->
+    <key>Label</key>
+    <string>com.samleuthold.literature-manager</string>
+
+    <!-- Program to run -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/samleuthold/.pyenv/versions/3.9.19/bin/python3</string>
+        <string>-m</string>
+        <string>literature_manager.cli</string>
+        <string>watch</string>
+        <string>--verbose</string>
+    </array>
+
+    <!-- Working directory -->
+    <key>WorkingDirectory</key>
+    <string>/Users/samleuthold/Desktop/workshop/.tools/literature-manager</string>
+
+    <!-- Run on load (start when you log in) -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Keep alive (restart if crashes) -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Standard output (logs) -->
+    <key>StandardOutPath</key>
+    <string>/Users/samleuthold/Desktop/workshop/.tools/literature-manager/logs/watch.log</string>
+
+    <!-- Standard error (errors) -->
+    <key>StandardErrorPath</key>
+    <string>/Users/samleuthold/Desktop/workshop/.tools/literature-manager/logs/watch.error.log</string>
+
+    <!-- Environment variables -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>PYTHONPATH</key>
+        <string>/Users/samleuthold/Desktop/workshop/.tools/literature-manager/src</string>
+        <key>PYENV_VERSION</key>
+        <string>3.9.19</string>
+    </dict>
+
+    <!-- Nice level (lower priority, won't hog CPU) -->
+    <key>Nice</key>
+    <integer>10</integer>
+
+    <!-- Don't run if on battery and low power -->
+    <key>LowPriorityIO</key>
+    <true/>
+</dict>
+</plist>

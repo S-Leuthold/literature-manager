@@ -12,6 +12,51 @@ import requests
 from literature_manager.utils import extract_doi_from_text, normalize_whitespace
 
 
+def _is_valid_metadata(metadata: Dict) -> bool:
+    """
+    Validate metadata quality to reject bad extractions.
+
+    Args:
+        metadata: Metadata dict to validate
+
+    Returns:
+        True if metadata appears valid, False otherwise
+    """
+    title = metadata.get("title", "").lower()
+
+    # Reject obvious bad titles
+    bad_titles = [
+        "acknowledgement",
+        "acknowledgements",
+        "references",
+        "bibliography",
+        "table of contents",
+        "contents",
+        "index",
+        "appendix",
+        "supplementary",
+        "erratum",
+        "corrigendum",
+        "retraction",
+        "front matter",
+        "back matter",
+    ]
+
+    for bad in bad_titles:
+        if bad in title and len(title) < 50:  # Short titles matching these patterns
+            return False
+
+    # Reject if title is just numbers or very short
+    if len(title) < 10 or title.replace(".", "").replace(" ", "").isdigit():
+        return False
+
+    # Must have at least a title
+    if not metadata.get("title"):
+        return False
+
+    return True
+
+
 def extract_doi_from_pdf(pdf_path: Path) -> Optional[str]:
     """
     Extract DOI from PDF file.
@@ -115,9 +160,11 @@ def lookup_doi_metadata(doi: str, email: Optional[str] = None) -> Optional[Dict]
                 given = author.get("given", "")
 
                 if family:
+                    # Normalize capitalization (CrossRef sometimes returns all caps)
+                    family = family.title()
                     # Format as "Last, F."
                     if given:
-                        initial = given[0] if given else ""
+                        initial = given[0].upper() if given else ""
                         authors.append(f"{family}, {initial}.")
                     else:
                         authors.append(family)
@@ -142,6 +189,10 @@ def lookup_doi_metadata(doi: str, email: Optional[str] = None) -> Optional[Dict]
             subjects = message.get("subject", [])
             if subjects:
                 metadata["keywords"] = subjects
+
+            # Validate metadata quality
+            if not _is_valid_metadata(metadata):
+                return None
 
             return metadata
 

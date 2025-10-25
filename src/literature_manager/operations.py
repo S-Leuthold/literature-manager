@@ -15,44 +15,42 @@ from literature_manager.utils import compute_file_hash, fuzzy_match_score
 
 
 def determine_destination(
-    metadata: Dict, topic: Optional[str], confidence: float, config: Config
+    metadata: Dict, topics: List[str], confidence: float, config: Config
 ) -> Tuple[Path, List[Path]]:
     """
-    Determine where to file the paper.
+    Determine where to file the paper with multi-topic support.
+
+    Option A: File lives in by-topic/{first-topic}/, with symlinks to other topics.
+    Recent folder gets a copy (deleted after 3 days).
 
     Args:
         metadata: Paper metadata
-        topic: Matched topic name (or None)
-        confidence: Topic match confidence
+        topics: List of suggested topics (1-3 topics, first is primary)
+        confidence: Topic confidence (0.85 = high confidence from LLM)
         config: Configuration object
 
     Returns:
         Tuple of (primary_destination, secondary_destinations_for_symlinks)
     """
     threshold = config.get("confidence_threshold", 0.85)
-    min_papers = config.get("min_papers_for_topic", 3)
 
-    # Load topic profiles to check paper count
-    from literature_manager.topics import load_topic_profiles
+    # If we have topics with high confidence, file to by-topic
+    if topics and confidence >= threshold:
+        # Primary location: by-topic/{first-topic}/
+        primary_topic = topics[0]
+        topic_slug = slugify(primary_topic)
+        primary_dest = config.by_topic_path / topic_slug
 
-    profiles = load_topic_profiles(config.topic_profiles_path)
-
-    # Decision logic
-    primary_dest = None
-    secondary_dests = []
-
-    if topic and confidence >= threshold:
-        # Check if topic has enough papers
-        if topic in profiles and profiles[topic].paper_count >= min_papers:
-            # High confidence + established topic -> file to by-topic
+        # Secondary locations: symlinks to other topics
+        secondary_dests = []
+        for topic in topics[1:]:  # Skip first topic (already primary)
             topic_slug = slugify(topic)
-            primary_dest = config.by_topic_path / topic_slug
-        else:
-            # High confidence but new topic -> recent for now
-            primary_dest = config.recent_path
+            topic_dir = config.by_topic_path / topic_slug
+            secondary_dests.append(topic_dir)
     else:
-        # Low confidence or no topic -> recent
+        # Low confidence or no topics -> recent only
         primary_dest = config.recent_path
+        secondary_dests = []
 
     return primary_dest, secondary_dests
 
@@ -315,43 +313,25 @@ def check_duplicate(metadata: Dict, config: Config) -> Optional[Tuple[str, str]]
 
 
 def handle_duplicate(
-    new_pdf: Path, existing_path: str, action: str = "merge", config: Config = None
+    new_pdf: Path, existing_path: str, action: str = "skip", config: Config = None
 ) -> bool:
     """
     Handle duplicate paper detection.
 
+    Always deletes the duplicate PDF from inbox and skips LLM processing.
+
     Args:
-        new_pdf: Path to new PDF
+        new_pdf: Path to new PDF (will be deleted)
         existing_path: Path to existing PDF (relative to workshop)
-        action: Action to take (merge, skip, prompt)
+        action: Action to take (ignored, always deletes duplicate)
         config: Configuration object
 
     Returns:
-        True if duplicate was handled (keep processing), False if should skip
+        False (always skip processing of duplicates)
     """
-    if action == "merge":
-        # Compare file sizes, keep larger
-        existing_full = config.workshop_root / existing_path
-        if existing_full.exists():
-            new_size = new_pdf.stat().st_size
-            existing_size = existing_full.stat().st_size
-
-            if new_size > existing_size:
-                # New file is larger, replace old one
-                existing_full.unlink()
-                return True  # Continue processing
-            else:
-                # Existing file is larger/same, delete new one
-                new_pdf.unlink()
-                return False  # Skip processing
-        else:
-            # Existing file doesn't exist anymore, process new one
-            return True
-
-    elif action == "skip":
-        # Just delete the new file
+    # Always delete the duplicate from inbox
+    if new_pdf.exists():
         new_pdf.unlink()
-        return False
 
-    # Default: continue processing
-    return True
+    # Skip processing (don't query LLM for duplicates)
+    return False
