@@ -2,6 +2,8 @@
 
 import sys
 import time
+import os
+import fcntl
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -271,6 +273,21 @@ def watch(ctx, verbose):
     config = ctx.obj["config"]
     config.ensure_directories()
 
+    # Create PID file to prevent multiple instances
+    pid_file_path = config.workshop_root / '.tools' / 'literature-manager' / 'logs' / 'watch.pid'
+    pid_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        pid_file = open(pid_file_path, 'w')
+        fcntl.flock(pid_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        pid_file.write(str(os.getpid()))
+        pid_file.flush()
+    except (IOError, OSError):
+        print_error("Another instance of literature-manager watch is already running")
+        print_info("If you're sure no other instance is running, delete:")
+        print_info(f"  {pid_file_path}")
+        sys.exit(1)
+
     from watchdog.events import FileSystemEventHandler
     from watchdog.observers import Observer
 
@@ -326,11 +343,10 @@ def watch(ctx, verbose):
     print_info(f"Watching inbox: {config.inbox_path}")
     print_info("Press Ctrl+C to stop\n")
 
-    # Validate and repair index before starting
-    from literature_manager.index_validator import validate_and_repair_index
-    files_checked, repairs = validate_and_repair_index(config, verbose=verbose)
-    if repairs > 0:
-        print_info(f"✓ Index validated: {repairs} path(s) repaired\n")
+    # Skip index validation in background mode to avoid file lock conflicts
+    # Validation will happen during normal processing when files are added
+    if verbose:
+        print_info("✓ Watch mode started (index validation skipped)\n")
 
     # Process any existing PDFs in inbox before starting watch
     existing_pdfs = list(config.inbox_path.glob("*.pdf"))

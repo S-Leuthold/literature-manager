@@ -1,6 +1,7 @@
 """Index validation and repair utilities."""
 
 import json
+import fcntl
 from pathlib import Path
 from typing import Dict, List, Tuple
 from literature_manager.config import Config
@@ -23,14 +24,22 @@ def validate_and_repair_index(config: Config, verbose: bool = False) -> Tuple[in
     if verbose:
         print("Validating index...")
 
-    # Load index
+    # Load index with non-blocking lock
     if not config.index_path.exists():
         if verbose:
             print("  No index found, skipping validation")
         return 0, 0
 
-    with open(config.index_path) as f:
-        index = json.load(f)
+    try:
+        with open(config.index_path, 'r') as f:
+            # Try to acquire non-blocking shared lock (multiple readers OK)
+            fcntl.flock(f.fileno(), fcntl.LOCK_SH | fcntl.LOCK_NB)
+            index = json.load(f)
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+    except (BlockingIOError, OSError) as e:
+        if verbose:
+            print("  ⚠ Index locked by another process, skipping validation")
+        return 0, 0
 
     # Scan all PDF locations
     scan_dirs = [
@@ -87,12 +96,19 @@ def validate_and_repair_index(config: Config, verbose: bool = False) -> Tuple[in
         for file_hash, new_path in repairs_needed.items():
             index[file_hash]['filepath'] = new_path
 
-        # Save updated index
-        with open(config.index_path, 'w') as f:
-            json.dump(index, f, indent=2)
+        # Save updated index with exclusive lock
+        try:
+            with open(config.index_path, 'w') as f:
+                # Acquire exclusive lock for writing
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                json.dump(index, f, indent=2)
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
-        if verbose:
-            print(f"  ✓ Repaired {len(repairs_needed)} path(s)")
+            if verbose:
+                print(f"  ✓ Repaired {len(repairs_needed)} path(s)")
+        except (BlockingIOError, OSError):
+            if verbose:
+                print("  ⚠ Could not acquire lock to save repairs, skipping")
 
     elif verbose:
         print(f"  ✓ Index valid ({files_scanned} files checked)")

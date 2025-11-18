@@ -24,9 +24,16 @@
     <key>RunAtLoad</key>
     <true/>
 
-    <!-- Keep alive (restart if crashes) -->
+    <!-- Keep alive with throttle to prevent rapid restarts -->
     <key>KeepAlive</key>
-    <true/>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <!-- Throttle restart interval (prevent rapid crash loops) -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
 
     <!-- Standard output (logs) -->
     <key>StandardOutPath</key>
