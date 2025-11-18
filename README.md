@@ -235,6 +235,14 @@ File Organization → Zotero Upload
 - View logs: `cat logs/watch.error.log`
 - Restart: `launchctl kickstart -k gui/$(id -u)/com.samleuthold.literature-manager`
 
+### "Another instance is already running" error
+- The service uses a PID file to prevent multiple instances
+- If you see this error but no instance is running, delete the stale PID file:
+  ```bash
+  rm logs/watch.pid
+  ```
+- Then restart the service
+
 ## Development
 
 ### Project Structure
@@ -290,6 +298,6 @@ Built with:
 
 ---
 
-**Version:** 2.0.0
+**Version:** 2.0.1
 **Status:** Production
-**Last Updated:** 2025-10-25
+**Last Updated:** 2025-11-18
