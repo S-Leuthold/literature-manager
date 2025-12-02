@@ -66,6 +66,7 @@ class Config:
         # Literature subdirectories
         self.recent_path = self.library_path / "recent"
         self.unknowables_path = self.library_path / "unknowables"
+        self.corrupted_path = self.library_path / "corrupted"
         self.by_topic_path = self.library_path / "by-topic"
 
         # Data files
@@ -93,6 +94,7 @@ class Config:
             self.inbox_path,
             self.recent_path,
             self.unknowables_path,
+            self.corrupted_path,
             self.by_topic_path,
             self.tools_path,
         ]

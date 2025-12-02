@@ -77,6 +77,41 @@ def process_single_pdf(pdf_path: Path, config, dry_run: bool = False, verbose: b
     if verbose:
         print_info(f"Processing: {pdf_path.name}")
 
+    ##  ---------------------------------------------------------------------------
+    ## Check PDF readability before expensive operations
+    ## ---------------------------------------------------------------------------
+    from literature_manager.extractors.text_parser import is_pdf_readable
+    from literature_manager.operations import log_action
+
+    is_readable, error_reason = is_pdf_readable(pdf_path)
+
+    if not is_readable:
+        print_error(f"  Corrupted or unreadable PDF: {error_reason}")
+
+        if not dry_run and pdf_path.exists():
+            corrupted_path = config.corrupted_path
+            corrupted_path.mkdir(parents=True, exist_ok=True)
+            dest = corrupted_path / pdf_path.name
+
+            try:
+                pdf_path.rename(dest)
+                print_warning(f"  Moved to corrupted/")
+
+                # Log with ERROR action
+                log_action(
+                    "ERROR",
+                    {"title": pdf_path.name, "authors": [], "year": None},
+                    pdf_path,
+                    dest,
+                    config,
+                    reason=f"corrupted_pdf: {error_reason}",
+                )
+            except FileNotFoundError:
+                # File was already moved, ignore
+                pass
+
+        return False
+
     try:
         # Quick duplicate check BEFORE expensive metadata extraction
         # Try to get DOI quickly from PDF metadata first
