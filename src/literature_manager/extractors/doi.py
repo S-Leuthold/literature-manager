@@ -10,6 +10,7 @@ import pdfplumber
 import requests
 
 from literature_manager.utils import extract_doi_from_text, normalize_whitespace
+from literature_manager.extractors.exceptions import CorruptedPDFError, NetworkError
 
 
 def _is_valid_metadata(metadata: Dict) -> bool:
@@ -197,14 +198,45 @@ def lookup_doi_metadata(doi: str, email: Optional[str] = None) -> Optional[Dict]
             return metadata
 
         elif response.status_code == 404:
-            return None  # DOI not found
+            return None  # DOI not found - this is OK
+        elif response.status_code == 429:
+            raise NetworkError(
+                "CrossRef API rate limit exceeded",
+                status_code=429,
+                method="doi_lookup"
+            )
+        elif response.status_code >= 500:
+            raise NetworkError(
+                f"CrossRef server error: {response.status_code}",
+                status_code=response.status_code,
+                method="doi_lookup"
+            )
         else:
-            # Rate limit or other error
-            time.sleep(1)
-            return None
+            raise NetworkError(
+                f"CrossRef API error: {response.status_code}",
+                status_code=response.status_code,
+                method="doi_lookup"
+            )
 
-    except Exception:
-        return None
+    except NetworkError:
+        # Re-raise our custom exceptions
+        raise
+    except requests.Timeout:
+        raise NetworkError(
+            "CrossRef API timeout (10s)",
+            method="doi_lookup"
+        )
+    except requests.ConnectionError as e:
+        raise NetworkError(
+            f"CrossRef API connection failed: {e}",
+            method="doi_lookup"
+        )
+    except Exception as e:
+        # Unknown error - still raise NetworkError for routing
+        raise NetworkError(
+            f"CrossRef API error: {type(e).__name__}: {e}",
+            method="doi_lookup"
+        )
 
 
 def extract_with_doi(pdf_path: Path, email: Optional[str] = None) -> Optional[Dict]:

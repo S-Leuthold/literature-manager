@@ -13,6 +13,12 @@ from colorama import Fore, Style, init
 
 from literature_manager.config import load_config
 from literature_manager.extractors import extract_metadata
+from literature_manager.extractors.exceptions import (
+    CorruptedPDFError,
+    NetworkError,
+    LLMError,
+    ConfigurationError,
+)
 from literature_manager.naming import generate_filename
 from literature_manager.operations import (
     check_duplicate,
@@ -246,11 +252,64 @@ def process_single_pdf(pdf_path: Path, config, dry_run: bool = False, verbose: b
         print_success(f"  Processed successfully!")
         return True
 
+    except CorruptedPDFError as e:
+        # PDF is structurally broken - already handled by early check
+        # This catches any that slip through (shouldn't happen)
+        print_error(f"  Corrupted PDF: {e.message}")
+        if verbose:
+            print_info(f"  Method: {e.method}")
+
+        if not dry_run and pdf_path.exists():
+            corrupted_path = config.corrupted_path
+            corrupted_path.mkdir(parents=True, exist_ok=True)
+            dest = corrupted_path / pdf_path.name
+            try:
+                pdf_path.rename(dest)
+                print_warning(f"  Moved to corrupted/")
+                log_action("ERROR", {"title": pdf_path.name, "authors": [], "year": None},
+                          pdf_path, dest, config, reason=f"corrupted: {e.method}")
+            except FileNotFoundError:
+                pass
+        return False
+
+    except NetworkError as e:
+        # Network issue - don't move file (transient, user can retry)
+        print_error(f"  Network error: {e.message}")
+        if verbose:
+            print_info(f"  Status: {e.status_code or 'timeout'}")
+            print_info(f"  Method: {e.method}")
+
+        # Log but don't move file
+        log_action("ERROR", {"title": pdf_path.name, "authors": [], "year": None},
+                  pdf_path, pdf_path, config, reason=f"network: {e.method}")
+        return False
+
+    except LLMError as e:
+        # LLM API issue - don't move file (transient, API issue)
+        print_error(f"  LLM error: {e.message}")
+        if verbose:
+            if e.api_error:
+                print_info(f"  Details: {e.api_error[:100]}")
+            print_info(f"  Method: {e.method}")
+
+        # Log but don't move file
+        log_action("ERROR", {"title": pdf_path.name, "authors": [], "year": None},
+                  pdf_path, pdf_path, config, reason=f"llm: {e.method}")
+        return False
+
+    except ConfigurationError as e:
+        # Config issue - fail fast
+        print_error(f"  Configuration error: {e.message}")
+        print_info(f"  Fix your config.yaml or .env and try again")
+        if verbose:
+            print_info(f"  Method: {e.method}")
+        return False
+
     except Exception as e:
-        print_error(f"  Error processing {pdf_path.name}: {e}")
+        # Catch-all for unexpected errors
+        print_error(f"  Unexpected error: {type(e).__name__}: {e}")
         if verbose:
             import traceback
-
             traceback.print_exc()
         return False
 

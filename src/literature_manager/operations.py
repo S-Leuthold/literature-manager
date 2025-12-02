@@ -230,6 +230,12 @@ def log_action(
     if "reason" in kwargs:
         log_entry += f"  → Reason: {kwargs['reason']}\n"
 
+    # Enhanced error details for ERROR actions
+    if action == "ERROR" and "errors" in metadata and metadata["errors"]:
+        # Show what methods were attempted and why they failed (first 3 errors)
+        error_details = "; ".join(metadata["errors"][:3])
+        log_entry += f"  → Details: {error_details}\n"
+
     log_entry += "\n"
 
     with open(log_path, "a") as f:

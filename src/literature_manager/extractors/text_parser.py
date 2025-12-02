@@ -6,6 +6,7 @@ from typing import Optional
 import pdfplumber
 
 from literature_manager.utils import normalize_whitespace
+from literature_manager.extractors.exceptions import CorruptedPDFError
 
 
 def extract_text_from_pdf(pdf_path: Path, max_pages: int = 3) -> Optional[str]:
@@ -17,12 +18,19 @@ def extract_text_from_pdf(pdf_path: Path, max_pages: int = 3) -> Optional[str]:
         max_pages: Maximum number of pages to extract (default: 3)
 
     Returns:
-        Extracted text as string, or None if extraction fails
+        Extracted text as string, or None if no text found (scanned images)
+
+    Raises:
+        CorruptedPDFError: If PDF is malformed or unreadable
     """
     try:
         with pdfplumber.open(pdf_path) as pdf:
             if len(pdf.pages) == 0:
-                return None
+                raise CorruptedPDFError(
+                    "PDF has zero pages",
+                    pdf_path=pdf_path,
+                    method="text_extraction"
+                )
 
             # Extract text from first N pages
             text_parts = []
@@ -32,13 +40,22 @@ def extract_text_from_pdf(pdf_path: Path, max_pages: int = 3) -> Optional[str]:
                     text_parts.append(page_text)
 
             if not text_parts:
+                # No text extracted - might be scanned images (not an error)
                 return None
 
             full_text = " ".join(text_parts)
             return normalize_whitespace(full_text)
 
-    except Exception:
-        return None
+    except CorruptedPDFError:
+        # Re-raise our custom exceptions
+        raise
+    except Exception as e:
+        # Catch pdfplumber/pdfminer exceptions
+        raise CorruptedPDFError(
+            f"Failed to read PDF: {type(e).__name__}: {e}",
+            pdf_path=pdf_path,
+            method="text_extraction"
+        )
 
 
 def truncate_text_for_llm(text: str, max_chars: int = 16000) -> str:

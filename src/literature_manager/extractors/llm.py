@@ -4,9 +4,11 @@ import json
 from typing import Dict, List, Optional
 
 from anthropic import Anthropic
+import anthropic
 
 from literature_manager.extractors.text_parser import truncate_text_for_llm
 from literature_manager.utils import normalize_whitespace
+from literature_manager.extractors.exceptions import LLMError, ConfigurationError
 
 
 EXTRACTION_PROMPT = """You are a scientific literature specialist extracting bibliographic metadata from paper text.
@@ -65,8 +67,18 @@ def extract_with_llm(
         model: Claude model to use
 
     Returns:
-        Metadata dict if successful, None otherwise
+        Metadata dict if successful, None if no text or no title found
+
+    Raises:
+        ConfigurationError: If API key is missing
+        LLMError: If API call fails or returns invalid JSON
     """
+    if not api_key:
+        raise ConfigurationError(
+            "Anthropic API key not configured",
+            method="llm_parsing"
+        )
+
     if not pdf_text or not pdf_text.strip():
         return None
 
@@ -96,9 +108,20 @@ def extract_with_llm(
 
             json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
             if json_match:
-                metadata = json.loads(json_match.group(0))
+                try:
+                    metadata = json.loads(json_match.group(0))
+                except json.JSONDecodeError:
+                    raise LLMError(
+                        "LLM returned invalid JSON",
+                        api_error=response_text[:200],
+                        method="llm_parsing"
+                    )
             else:
-                return None
+                raise LLMError(
+                    "LLM returned invalid JSON",
+                    api_error=response_text[:200],
+                    method="llm_parsing"
+                )
 
         # Validate and normalize
         result = {
@@ -129,9 +152,39 @@ def extract_with_llm(
 
         return result
 
+    except (LLMError, ConfigurationError):
+        # Re-raise our custom exceptions
+        raise
+    except anthropic.APIConnectionError as e:
+        raise LLMError(
+            f"Anthropic API connection failed: {e}",
+            api_error=str(e),
+            method="llm_parsing"
+        )
+    except anthropic.RateLimitError as e:
+        raise LLMError(
+            f"Anthropic rate limit exceeded: {e}",
+            api_error=str(e),
+            method="llm_parsing"
+        )
+    except anthropic.APIStatusError as e:
+        if e.status_code == 401:
+            raise ConfigurationError(
+                f"Invalid Anthropic API key: {e}",
+                method="llm_parsing"
+            )
+        else:
+            raise LLMError(
+                f"Anthropic API error ({e.status_code}): {e}",
+                api_error=str(e),
+                method="llm_parsing"
+            )
     except Exception as e:
-        print(f"LLM extraction error: {e}")
-        return None
+        raise LLMError(
+            f"LLM extraction failed: {type(e).__name__}: {e}",
+            api_error=str(e),
+            method="llm_parsing"
+        )
 
 
 ENHANCEMENT_PROMPT = """You are a scientific literature specialist categorizing soil science papers using a FIXED TAXONOMY.

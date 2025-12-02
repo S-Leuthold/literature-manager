@@ -8,6 +8,12 @@ from literature_manager.extractors.doi import extract_with_doi
 from literature_manager.extractors.llm import enhance_metadata_with_llm, extract_with_llm
 from literature_manager.extractors.pdf_metadata import extract_pdf_metadata
 from literature_manager.extractors.text_parser import extract_text_from_pdf
+from literature_manager.extractors.exceptions import (
+    CorruptedPDFError,
+    NetworkError,
+    LLMError,
+    ConfigurationError,
+)
 
 
 def extract_metadata(pdf_path: Path, config: Config) -> Dict:
@@ -29,37 +35,65 @@ def extract_metadata(pdf_path: Path, config: Config) -> Dict:
 
     Returns:
         Metadata dict with extracted information
+
+    Raises:
+        CorruptedPDFError: If PDF is corrupted (stops immediately)
+        ConfigurationError: If API key missing (stops immediately)
     """
     preferred_methods = config.get("preferred_methods", ["doi_lookup", "pdf_metadata", "llm_parsing"])
 
     metadata = None
+    errors_encountered = []  # Track what went wrong for logging
 
     for method in preferred_methods:
-        if method == "doi_lookup":
-            # Try DOI + CrossRef
-            email = config.get("crossref_email")
-            metadata = extract_with_doi(pdf_path, email)
-            if metadata:
-                break
-
-        elif method == "pdf_metadata":
-            # Try PDF metadata
-            metadata = extract_pdf_metadata(pdf_path)
-            if metadata:
-                break
-
-        elif method == "llm_parsing":
-            # Try LLM extraction
-            # First extract text
-            pdf_text = extract_text_from_pdf(pdf_path)
-            if pdf_text:
-                api_key = config.get("anthropic_api_key")
-                model = config.get("llm_model", "claude-haiku-4-5-20251001")
-                metadata = extract_with_llm(pdf_text, api_key, model)
+        try:
+            if method == "doi_lookup":
+                # Try DOI + CrossRef
+                email = config.get("crossref_email")
+                metadata = extract_with_doi(pdf_path, email)
                 if metadata:
                     break
+                else:
+                    errors_encountered.append(f"{method}: not found")
 
-    # If all methods failed, return minimal metadata
+            elif method == "pdf_metadata":
+                # Try PDF metadata
+                metadata = extract_pdf_metadata(pdf_path)
+                if metadata:
+                    break
+                else:
+                    errors_encountered.append(f"{method}: not found")
+
+            elif method == "llm_parsing":
+                # Try LLM extraction
+                # First extract text
+                pdf_text = extract_text_from_pdf(pdf_path)
+                if pdf_text:
+                    api_key = config.get("anthropic_api_key")
+                    model = config.get("llm_model", "claude-haiku-4-5-20251001")
+                    metadata = extract_with_llm(pdf_text, api_key, model)
+                    if metadata:
+                        break
+                    else:
+                        errors_encountered.append(f"{method}: extraction returned empty")
+                else:
+                    errors_encountered.append(f"{method}: no text to parse")
+
+        except (CorruptedPDFError, ConfigurationError):
+            # Fatal errors - stop immediately and re-raise
+            raise
+
+        except NetworkError as e:
+            # Network issue - log but continue to next method (transient)
+            errors_encountered.append(f"{method}: network error - {e.message}")
+            continue
+
+        except LLMError as e:
+            # LLM issue - log but continue to next method (API issue)
+            errors_encountered.append(f"{method}: LLM error - {e.message}")
+            continue
+
+    # If all methods failed, return minimal metadata with error tracking
     if not metadata:
         metadata = {
             "title": "",
@@ -69,6 +103,7 @@ def extract_metadata(pdf_path: Path, config: Config) -> Dict:
             "keywords": [],
             "extraction_method": "failed",
             "extraction_confidence": 0.0,
+            "errors": errors_encountered,  # NEW: for logging
         }
     else:
         # SUCCESS! Now check if we need to extract abstract from PDF text
