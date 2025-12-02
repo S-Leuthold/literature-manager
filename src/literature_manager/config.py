@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import yaml
+from dotenv import load_dotenv
 
 
 class Config:
@@ -20,6 +21,7 @@ class Config:
         self.config_path = config_path or self._find_config()
         self.data = self._load_config()
         self._resolve_paths()
+        self._load_env()
 
     def _find_config(self) -> Path:
         """Find config.yaml in default locations."""
@@ -70,6 +72,16 @@ class Config:
         self.index_path = self.tools_path / ".literature-index.json"
         self.log_path = self.tools_path / ".literature-log.txt"
         self.topic_profiles_path = self.tools_path / ".topic-profiles.json"
+
+    def _load_env(self):
+        """Load API keys from .env file in .tools/ directory."""
+        env_path = self.workshop_root / ".tools" / ".env"
+        if env_path.exists():
+            load_dotenv(env_path)
+
+        # Load API keys from environment into config data
+        if os.getenv("ANTHROPIC_API_KEY"):
+            self.data["anthropic_api_key"] = os.getenv("ANTHROPIC_API_KEY")
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value."""
