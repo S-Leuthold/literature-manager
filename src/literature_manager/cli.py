@@ -10,6 +10,7 @@ from typing import Optional
 
 import click
 from colorama import Fore, Style, init
+from slugify import slugify
 
 from literature_manager.config import load_config
 from literature_manager.extractors import extract_metadata
@@ -623,8 +624,6 @@ def review_recent(ctx):
             continue
 
         # Move to topic folder
-        from slugify import slugify
-
         topic_slug = slugify(topic)
         dest_dir = config.by_topic_path / topic_slug
         dest_dir.mkdir(parents=True, exist_ok=True)
