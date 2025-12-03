@@ -82,6 +82,12 @@ class Config:
         # Load API keys from environment into config data
         if os.getenv("ANTHROPIC_API_KEY"):
             self.data["anthropic_api_key"] = os.getenv("ANTHROPIC_API_KEY")
+        if os.getenv("ZOTERO_API_KEY"):
+            self.data["zotero_api_key"] = os.getenv("ZOTERO_API_KEY")
+        if os.getenv("ZOTERO_USER_ID"):
+            self.data["zotero_user_id"] = os.getenv("ZOTERO_USER_ID")
+        if os.getenv("ZOTERO_LIBRARY_TYPE"):
+            self.data["zotero_library_type"] = os.getenv("ZOTERO_LIBRARY_TYPE")
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value."""

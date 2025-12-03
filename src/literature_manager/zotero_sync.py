@@ -1,29 +1,30 @@
 """Zotero library synchronization."""
 
 import os
-from pathlib import Path
 from typing import Dict, List, Optional
 from pyzotero import zotero
-from dotenv import load_dotenv
 
 
 class ZoteroSync:
     """Handles automatic synchronization with Zotero library."""
 
-    def __init__(self):
-        """Initialize Zotero client from environment variables."""
-        # Load .env file from .tools/ directory (shared across tools)
-        env_path = Path(__file__).parent.parent.parent.parent / '.env'
-        load_dotenv(env_path)
+    def __init__(self, api_key: str = None, user_id: str = None, library_type: str = None):
+        """
+        Initialize Zotero client.
 
-        self.api_key = os.getenv('ZOTERO_API_KEY')
-        self.user_id = os.getenv('ZOTERO_USER_ID')
-        self.library_type = os.getenv('ZOTERO_LIBRARY_TYPE', 'user')
+        Args:
+            api_key: Zotero API key (or from ZOTERO_API_KEY env var)
+            user_id: Zotero user ID (or from ZOTERO_USER_ID env var)
+            library_type: 'user' or 'group' (or from ZOTERO_LIBRARY_TYPE env var)
+        """
+        self.api_key = api_key or os.getenv('ZOTERO_API_KEY')
+        self.user_id = user_id or os.getenv('ZOTERO_USER_ID')
+        self.library_type = library_type or os.getenv('ZOTERO_LIBRARY_TYPE', 'user')
 
         if not self.api_key or not self.user_id:
             raise ValueError(
                 "Zotero credentials not found. "
-                "Set ZOTERO_API_KEY and ZOTERO_USER_ID in .env file"
+                "Set ZOTERO_API_KEY and ZOTERO_USER_ID in .env file or pass as arguments"
             )
 
         # Initialize Zotero client

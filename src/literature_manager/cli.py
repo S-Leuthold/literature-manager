@@ -238,7 +238,11 @@ def process_single_pdf(pdf_path: Path, config, dry_run: bool = False, verbose: b
         if not dry_run and config.get("zotero_sync_enabled", False):
             try:
                 from literature_manager.zotero_sync import ZoteroSync
-                zot_sync = ZoteroSync()
+                zot_sync = ZoteroSync(
+                    api_key=config.get("zotero_api_key"),
+                    user_id=config.get("zotero_user_id"),
+                    library_type=config.get("zotero_library_type", "user")
+                )
                 zot_sync.upload_paper(metadata, final_path, topics)
             except Exception as e:
                 print_warning(f"  Zotero upload failed: {e}")
