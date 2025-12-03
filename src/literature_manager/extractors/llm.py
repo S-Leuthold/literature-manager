@@ -56,7 +56,8 @@ Return ONLY valid JSON (no other text):
 
 
 def extract_with_llm(
-    pdf_text: str, api_key: str, model: str = "claude-haiku-4-5-20251001"
+    pdf_text: str, api_key: str, model: str = "claude-haiku-4-5-20251001",
+    max_chars: int = 16000
 ) -> Optional[Dict]:
     """
     Extract metadata using Claude LLM.
@@ -65,6 +66,7 @@ def extract_with_llm(
         pdf_text: Extracted text from PDF
         api_key: Anthropic API key
         model: Claude model to use
+        max_chars: Maximum characters for LLM context (default from config)
 
     Returns:
         Metadata dict if successful, None if no text or no title found
@@ -84,7 +86,7 @@ def extract_with_llm(
 
     try:
         # Truncate text to fit within token limits
-        truncated_text = truncate_text_for_llm(pdf_text)
+        truncated_text = truncate_text_for_llm(pdf_text, max_chars=max_chars)
 
         # Create prompt
         prompt = EXTRACTION_PROMPT.replace("%TEXT%", truncated_text)

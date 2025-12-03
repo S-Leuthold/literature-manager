@@ -71,7 +71,8 @@ def extract_metadata(pdf_path: Path, config: Config) -> Dict:
                 if pdf_text:
                     api_key = config.get("anthropic_api_key")
                     model = config.get("llm_model", "claude-haiku-4-5-20251001")
-                    metadata = extract_with_llm(pdf_text, api_key, model)
+                    max_chars = config.get("llm_max_chars", 16000)
+                    metadata = extract_with_llm(pdf_text, api_key, model, max_chars)
                     if metadata:
                         break
                     else:
@@ -113,8 +114,9 @@ def extract_metadata(pdf_path: Path, config: Config) -> Dict:
             if pdf_text:
                 api_key = config.get("anthropic_api_key")
                 model = config.get("llm_model", "claude-haiku-4-5-20251001")
+                max_chars = config.get("llm_max_chars", 16000)
                 # Use LLM to extract just the abstract from PDF text
-                llm_metadata = extract_with_llm(pdf_text, api_key, model)
+                llm_metadata = extract_with_llm(pdf_text, api_key, model, max_chars)
                 if llm_metadata and llm_metadata.get("abstract"):
                     # Keep the good metadata (title, authors, year from DOI) but add the abstract
                     metadata["abstract"] = llm_metadata["abstract"]

@@ -192,7 +192,7 @@ def process_single_pdf(pdf_path: Path, config, dry_run: bool = False, verbose: b
                     click.echo(f"  Also in: {', '.join(topics[1:])}")
             # Use first topic as primary
             topic = topics[0]
-            confidence = 0.85  # High confidence for LLM suggestions
+            confidence = config.get("confidence_threshold", 0.85)
         else:
             if verbose:
                 click.echo(f"  No topic suggested")
