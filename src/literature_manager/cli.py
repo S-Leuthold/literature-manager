@@ -30,12 +30,7 @@ from literature_manager.operations import (
     move_and_rename_file,
     update_index,
 )
-from literature_manager.topics import (
-    load_topic_profiles,
-    match_topic,
-    save_topic_profiles,
-    update_topic_profile,
-)
+from literature_manager.taxonomy import TopicTaxonomy
 
 # Initialize colorama for cross-platform color support
 init(autoreset=True)
@@ -547,9 +542,9 @@ def review_recent(ctx):
         print_info("No files in recent/ to review")
         return
 
-    # Load profiles
-    profiles = load_topic_profiles(config.topic_profiles_path)
-    topic_names = sorted(profiles.keys())
+    # Load fixed taxonomy
+    taxonomy = TopicTaxonomy()
+    topic_names = sorted(taxonomy.get_all_slugs())
 
     click.echo(f"\nFound {len(pdf_files)} paper(s) in recent/\n")
 
@@ -632,11 +627,6 @@ def review_recent(ctx):
 
         new_path = dest_dir / pdf_path.name
         pdf_path.rename(new_path)
-
-        # Update topic profile if we have metadata
-        if metadata:
-            profiles = update_topic_profile(topic, metadata, profiles)
-            save_topic_profiles(profiles, config.topic_profiles_path)
 
         print_success(f"Moved to: {dest_dir.relative_to(config.workshop_root)}\n")
         processed_count += 1
