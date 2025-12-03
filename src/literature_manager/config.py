@@ -35,8 +35,9 @@ class Config:
         if config_path.exists():
             return config_path
 
-        # Try workshop/.tools/literature-manager
-        workshop_tools = Path.home() / "Desktop/workshop/.tools/literature-manager/config.yaml"
+        # Try workshop/.tools/literature-manager (supports WORKSHOP_ROOT env var)
+        workshop_root = os.getenv("WORKSHOP_ROOT", str(Path.home() / "Desktop/workshop"))
+        workshop_tools = Path(workshop_root) / ".tools/literature-manager/config.yaml"
         if workshop_tools.exists():
             return workshop_tools
 
