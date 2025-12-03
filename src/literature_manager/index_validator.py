@@ -48,9 +48,16 @@ def validate_and_repair_index(config: Config, verbose: bool = False) -> Tuple[in
         config.workshop_root / 'library' / 'publications',
     ]
 
+    # Build lookup of indexed files by path for cache checking
+    index_by_path = {}
+    for entry in index.values():
+        if entry.get('filepath'):
+            index_by_path[entry['filepath']] = entry
+
     # Build map of actual files (hash -> path)
     actual_files = {}
     files_scanned = 0
+    hashes_computed = 0
 
     for scan_dir in scan_dirs:
         if not scan_dir.exists():
@@ -62,9 +69,23 @@ def validate_and_repair_index(config: Config, verbose: bool = False) -> Tuple[in
                 continue
 
             files_scanned += 1
+            stat = pdf_path.stat()
+            rel_path = str(pdf_path.relative_to(config.workshop_root))
 
-            # Compute hash
-            file_hash = compute_file_hash(pdf_path)
+            # Check if we have cached hash with matching mtime/size
+            cached_entry = index_by_path.get(rel_path)
+
+            if (cached_entry
+                and cached_entry.get('file_mtime') == stat.st_mtime
+                and cached_entry.get('file_size') == stat.st_size
+                and cached_entry.get('file_hash')):
+                # Use cached hash (file unchanged)
+                file_hash = cached_entry['file_hash']
+            else:
+                # Compute new hash (file changed or not in index)
+                file_hash = compute_file_hash(pdf_path)
+                hashes_computed += 1
+
             actual_files[file_hash] = pdf_path
 
     # Check index entries against actual files

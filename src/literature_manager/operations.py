@@ -170,6 +170,7 @@ def update_index(metadata: Dict, filepath: Path, config: Config):
     index = load_index(config.index_path)
 
     # Create entry
+    stat = filepath.stat()
     entry = {
         "filepath": str(filepath.relative_to(config.workshop_root)),
         "original_filename": metadata.get("original_filename", ""),
@@ -185,6 +186,8 @@ def update_index(metadata: Dict, filepath: Path, config: Config):
         "extraction_confidence": metadata.get("extraction_confidence", 0.0),
         "processed_date": datetime.now().isoformat(),
         "file_hash": compute_file_hash(filepath),
+        "file_size": stat.st_size,
+        "file_mtime": stat.st_mtime,
     }
 
     # Use file hash as key (unique identifier)
