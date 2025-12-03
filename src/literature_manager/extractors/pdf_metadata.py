@@ -1,11 +1,13 @@
 """PDF metadata extraction from file properties."""
 
+import logging
 import re
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
 import PyPDF2
+from PyPDF2.errors import PdfReadError
 
 from literature_manager.utils import normalize_whitespace
 
@@ -155,5 +157,9 @@ def extract_pdf_metadata(pdf_path: Path) -> Optional[Dict]:
 
             return result
 
-    except Exception:
+    except PdfReadError as e:
+        logging.debug(f"PDF read error for {pdf_path.name}: {e}")
+        return None
+    except Exception as e:
+        logging.warning(f"Unexpected error reading PDF metadata from {pdf_path.name}: {type(e).__name__}: {e}")
         return None
