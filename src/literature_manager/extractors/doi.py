@@ -13,6 +13,51 @@ from literature_manager.utils import extract_doi_from_text, normalize_whitespace
 from literature_manager.extractors.exceptions import CorruptedPDFError, NetworkError
 
 
+def _retry_request(url: str, headers: dict, max_retries: int = 3, base_delay: float = 1.0):
+    """
+    Make HTTP request with exponential backoff retry.
+
+    Args:
+        url: URL to request
+        headers: Request headers
+        max_retries: Maximum number of retry attempts
+        base_delay: Base delay in seconds (exponentially increased)
+
+    Returns:
+        Response object
+
+    Raises:
+        NetworkError: If all retries fail
+    """
+    last_error = None
+
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+
+            # Success or client error (don't retry 4xx except 429)
+            if response.status_code < 500 and response.status_code != 429:
+                return response
+
+            # Server error or rate limit - retry
+            last_error = f"HTTP {response.status_code}"
+
+        except requests.Timeout:
+            last_error = "timeout"
+        except requests.ConnectionError as e:
+            last_error = f"connection: {e}"
+
+        # Exponential backoff (skip on last attempt)
+        if attempt < max_retries - 1:
+            delay = base_delay * (2 ** attempt)
+            time.sleep(delay)
+
+    raise NetworkError(
+        f"CrossRef API failed after {max_retries} retries: {last_error}",
+        method="doi_lookup"
+    )
+
+
 def _is_valid_metadata(metadata: Dict) -> bool:
     """
     Validate metadata quality to reject bad extractions.
@@ -132,7 +177,7 @@ def lookup_doi_metadata(doi: str, email: Optional[str] = None) -> Optional[Dict]
     headers = {"User-Agent": f"LiteratureManager/0.1 (mailto:{email or 'unknown'})"}
 
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        response = _retry_request(url, headers)
 
         if response.status_code == 200:
             data = response.json()
@@ -199,19 +244,8 @@ def lookup_doi_metadata(doi: str, email: Optional[str] = None) -> Optional[Dict]
 
         elif response.status_code == 404:
             return None  # DOI not found - this is OK
-        elif response.status_code == 429:
-            raise NetworkError(
-                "CrossRef API rate limit exceeded",
-                status_code=429,
-                method="doi_lookup"
-            )
-        elif response.status_code >= 500:
-            raise NetworkError(
-                f"CrossRef server error: {response.status_code}",
-                status_code=response.status_code,
-                method="doi_lookup"
-            )
         else:
+            # Other client errors (4xx) that weren't retried
             raise NetworkError(
                 f"CrossRef API error: {response.status_code}",
                 status_code=response.status_code,
@@ -219,18 +253,8 @@ def lookup_doi_metadata(doi: str, email: Optional[str] = None) -> Optional[Dict]
             )
 
     except NetworkError:
-        # Re-raise our custom exceptions
+        # Re-raise our custom exceptions (including from _retry_request)
         raise
-    except requests.Timeout:
-        raise NetworkError(
-            "CrossRef API timeout (10s)",
-            method="doi_lookup"
-        )
-    except requests.ConnectionError as e:
-        raise NetworkError(
-            f"CrossRef API connection failed: {e}",
-            method="doi_lookup"
-        )
     except Exception as e:
         # Unknown error - still raise NetworkError for routing
         raise NetworkError(
