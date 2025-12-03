@@ -189,19 +189,16 @@ class ZoteroSync:
                         print(f"  ⚠ PDF upload failed: {e}")
 
                 # Add to collections (one per topic)
-                import time
                 current_item = resp['successful']['0']
 
-                for i, topic in enumerate(topics):
+                for topic in topics:
                     try:
                         coll_key = self.get_or_create_collection(topic)
-                        self.zot.addto_collection(coll_key, current_item)
+                        # addto_collection returns updated item or True
+                        result = self.zot.addto_collection(coll_key, current_item)
+                        if result and isinstance(result, dict):
+                            current_item = result  # Use returned version
                         print(f"  ✓ Added to collection: {topic}")
-
-                        # Re-fetch item with updated version before next collection
-                        if i < len(topics) - 1:  # Don't re-fetch after last one
-                            time.sleep(0.3)  # Small delay for API
-                            current_item = self.zot.item(item_key)
                     except Exception as e:
                         print(f"  ⚠ Collection add failed for {topic}: {e}")
 
