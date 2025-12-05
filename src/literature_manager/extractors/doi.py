@@ -191,6 +191,13 @@ def lookup_doi_metadata(doi: str, email: Optional[str] = None) -> Optional[Dict]
                 "year": None,
                 "abstract": None,
                 "keywords": [],
+                # Publication details for Zotero
+                "journal": None,
+                "volume": None,
+                "issue": None,
+                "pages": None,
+                "publisher": None,
+                "issn": None,
             }
 
             # Title
@@ -235,6 +242,27 @@ def lookup_doi_metadata(doi: str, email: Optional[str] = None) -> Optional[Dict]
             subjects = message.get("subject", [])
             if subjects:
                 metadata["keywords"] = subjects
+
+            # Journal/publication details
+            container = message.get("container-title", [])
+            if container:
+                metadata["journal"] = container[0]
+
+            if message.get("volume"):
+                metadata["volume"] = str(message["volume"])
+
+            if message.get("issue"):
+                metadata["issue"] = str(message["issue"])
+
+            if message.get("page"):
+                metadata["pages"] = message["page"]
+
+            if message.get("publisher"):
+                metadata["publisher"] = message["publisher"]
+
+            issn_list = message.get("ISSN", [])
+            if issn_list:
+                metadata["issn"] = issn_list[0]
 
             # Validate metadata quality
             if not _is_valid_metadata(metadata):

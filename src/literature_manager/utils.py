@@ -72,6 +72,9 @@ def extract_doi_from_text(text: str) -> Optional[str]:
     """
     Extract DOI from text using regex.
 
+    Finds all DOI matches and returns the longest valid one,
+    avoiding truncated DOIs that appear in URLs/references.
+
     Args:
         text: Text to search for DOI
 
@@ -80,8 +83,21 @@ def extract_doi_from_text(text: str) -> Optional[str]:
     """
     # DOI regex pattern
     doi_pattern = r"10\.\d{4,9}/[-._;()/:a-zA-Z0-9]+"
-    match = re.search(doi_pattern, text)
-    return match.group(0) if match else None
+    matches = re.findall(doi_pattern, text)
+
+    if not matches:
+        return None
+
+    # Filter out obviously truncated DOIs (< 15 chars is suspicious)
+    # e.g., "10.1073/pnas." (truncated) vs "10.1073/pnas.2217481120" (valid)
+    valid_matches = [d for d in matches if len(d) >= 15]
+
+    # If we have valid matches, return the longest one
+    if valid_matches:
+        return max(valid_matches, key=len)
+
+    # Fallback to longest match if no valid ones found
+    return max(matches, key=len)
 
 
 def normalize_whitespace(text: str) -> str:

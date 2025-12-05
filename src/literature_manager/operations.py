@@ -181,6 +181,7 @@ def update_index(metadata: Dict, filepath: Path, config: Config):
         "abstract": metadata.get("abstract"),
         "keywords": metadata.get("keywords", []),
         "topic": metadata.get("matched_topic", ""),
+        "topics": metadata.get("topics", []),  # All assigned topics
         "confidence": metadata.get("topic_confidence", 0.0),
         "extraction_method": metadata.get("extraction_method", ""),
         "extraction_confidence": metadata.get("extraction_confidence", 0.0),
@@ -188,7 +189,22 @@ def update_index(metadata: Dict, filepath: Path, config: Config):
         "file_hash": compute_file_hash(filepath),
         "file_size": stat.st_size,
         "file_mtime": stat.st_mtime,
+        # LLM-generated summary (short, for filename)
+        "summary": metadata.get("summary", ""),
+        # Publication details (from CrossRef)
+        "journal": metadata.get("journal"),
+        "volume": metadata.get("volume"),
+        "issue": metadata.get("issue"),
+        "pages": metadata.get("pages"),
     }
+
+    # Add domain-specific attributes if extracted
+    if metadata.get("domain_attributes"):
+        entry["domain_attributes"] = metadata["domain_attributes"]
+
+    # Add enhanced summary if generated
+    if metadata.get("enhanced_summary"):
+        entry["enhanced_summary"] = metadata["enhanced_summary"]
 
     # Use file hash as key (unique identifier)
     index[entry["file_hash"]] = entry

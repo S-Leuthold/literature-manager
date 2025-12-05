@@ -155,6 +155,31 @@ def extract_pdf_metadata(pdf_path: Path) -> Optional[Dict]:
             if not result["title"]:
                 return None
 
+            # Reject low-quality titles that indicate extraction failed
+            title_lower = result["title"].lower()
+            bad_title_patterns = [
+                "pii:",           # Elsevier PII number, not a real title
+                "untitled",       # Generic placeholder
+                "10.5 commentary", # File artifacts
+                ".indd",          # InDesign file reference
+                "microsoft word", # MS Word metadata leak
+                "acrobat",        # Adobe metadata leak
+            ]
+
+            # Check for bad patterns
+            for pattern in bad_title_patterns:
+                if pattern in title_lower:
+                    return None
+
+            # Reject very short titles (< 10 chars) that are likely not real titles
+            if len(result["title"]) < 10:
+                return None
+
+            # Reject titles that are mostly numbers/punctuation
+            alpha_chars = sum(1 for c in result["title"] if c.isalpha())
+            if alpha_chars < 5:
+                return None
+
             return result
 
     except PdfReadError as e:

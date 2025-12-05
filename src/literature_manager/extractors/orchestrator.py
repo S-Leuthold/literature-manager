@@ -5,7 +5,7 @@ from typing import Dict
 
 from literature_manager.config import Config
 from literature_manager.extractors.doi import extract_with_doi
-from literature_manager.extractors.llm import enhance_metadata_with_llm, extract_with_llm
+from literature_manager.extractors.llm import enhance_metadata_with_llm, extract_with_llm, extract_domain_attributes, generate_paper_summary
 from literature_manager.extractors.pdf_metadata import extract_pdf_metadata
 from literature_manager.extractors.text_parser import extract_text_from_pdf
 from literature_manager.extractors.exceptions import (
@@ -136,6 +136,14 @@ def extract_metadata(pdf_path: Path, config: Config) -> Dict:
                 existing_topics = [d.name for d in by_topic_path.iterdir() if d.is_dir() and not d.name.startswith('.')]
 
             metadata = enhance_metadata_with_llm(metadata, api_key, model, existing_topics=existing_topics)
+
+            # Extract domain-specific attributes (study type, methods, fractions, etc.)
+            if config.get("extract_domain_attributes", True):
+                metadata = extract_domain_attributes(metadata, api_key, model)
+
+            # Generate enhanced paper summary for Zotero notes
+            if config.get("generate_paper_summary", True):
+                metadata = generate_paper_summary(metadata, api_key, model)
 
     # Add original filename
     metadata["original_filename"] = pdf_path.name
