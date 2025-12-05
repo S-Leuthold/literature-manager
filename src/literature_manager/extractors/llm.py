@@ -4,7 +4,6 @@ import json
 from typing import Dict, List, Optional
 
 from anthropic import Anthropic
-import anthropic
 
 from literature_manager.extractors.text_parser import truncate_text_for_llm
 from literature_manager.utils import normalize_whitespace
@@ -465,4 +464,364 @@ def enhance_metadata_with_llm(
             return enhance_metadata_with_llm(metadata, api_key, model, retry=False)
 
         # Fallback: return metadata unchanged
+        return metadata
+
+
+# Enhanced paper summary for Zotero notes
+PAPER_SUMMARY_PROMPT = """You are a soil science expert creating a concise research summary.
+
+<paper>
+<title>%TITLE%</title>
+<abstract>%ABSTRACT%</abstract>
+</paper>
+
+Create a structured summary with these sections:
+
+1. MAIN FINDING (2-3 sentences): What did this research discover or conclude? Be specific about the mechanism or relationship identified. Include numbers, conditions, or qualifications if mentioned.
+
+2. KEY APPROACH (1-2 sentences): What methods, framework, experimental design, or data did they use?
+
+3. IMPLICATION (1 sentence): Why does this matter for soil science, land management, or future research?
+
+Write in clear, direct language. Avoid jargon where possible. Be specific rather than vague.
+
+Return ONLY valid JSON:
+{
+    "main_finding": "2-3 sentences about what was discovered...",
+    "key_approach": "1-2 sentences about methods...",
+    "implication": "1 sentence about why it matters..."
+}"""
+
+
+def generate_paper_summary(
+    metadata: Dict, api_key: str, model: str = "claude-haiku-4-5-20251001"
+) -> Dict:
+    """
+    Generate an enhanced paper summary for Zotero notes.
+
+    Creates a structured summary with main finding, key approach, and implications.
+
+    Args:
+        metadata: Metadata dict with 'title' and 'abstract'
+        api_key: Anthropic API key
+        model: Claude model to use
+
+    Returns:
+        Metadata dict with 'enhanced_summary' field added
+    """
+    title = metadata.get("title", "")
+    abstract = metadata.get("abstract", "")
+
+    if not title or not abstract:
+        # Can't generate meaningful summary without both
+        return metadata
+
+    # Truncate abstract if too long
+    if len(abstract) > 4000:
+        abstract = abstract[:4000] + "..."
+
+    prompt = PAPER_SUMMARY_PROMPT.replace("%TITLE%", title)
+    prompt = prompt.replace("%ABSTRACT%", abstract)
+
+    try:
+        client = Anthropic(api_key=api_key)
+
+        message = client.messages.create(
+            model=model,
+            max_tokens=600,
+            temperature=0,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        response_text = message.content[0].text
+
+        # Parse JSON response
+        try:
+            summary_data = json.loads(response_text)
+        except json.JSONDecodeError:
+            import re
+            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
+            if json_match:
+                summary_data = json.loads(json_match.group(0))
+            else:
+                print(f"Warning: Could not parse summary JSON")
+                return metadata
+
+        # Add to metadata
+        metadata["enhanced_summary"] = {
+            "main_finding": summary_data.get("main_finding", ""),
+            "key_approach": summary_data.get("key_approach", ""),
+            "implication": summary_data.get("implication", ""),
+        }
+
+        return metadata
+
+    except Exception as e:
+        print(f"Summary generation error: {e}")
+        return metadata
+
+
+# Full-text paper summary for higher quality summaries
+FULLTEXT_SUMMARY_PROMPT = """You are a soil science expert creating a comprehensive research summary from the full paper text.
+
+<paper>
+<title>%TITLE%</title>
+<full_text>
+%FULLTEXT%
+</full_text>
+</paper>
+
+Read the entire paper carefully and create a detailed summary with these sections:
+
+1. MAIN FINDING (3-4 sentences): What did this research discover or conclude? Be specific about:
+   - The key mechanism, relationship, or pattern identified
+   - Quantitative results (percentages, rates, effect sizes) where available
+   - Important conditions, caveats, or context for the findings
+
+2. KEY APPROACH (2-3 sentences): What methods, framework, or experimental design did they use?
+   - Study type (field, lab, modeling, meta-analysis)
+   - Key analytical methods or techniques
+   - Scale, duration, or sample size if notable
+
+3. KEY DATA/RESULTS (2-3 sentences): What are the most important numbers or findings?
+   - Primary quantitative results
+   - Statistical significance or confidence
+   - Comparisons between treatments or conditions
+
+4. IMPLICATION (1-2 sentences): Why does this matter?
+   - Practical implications for soil management or land use
+   - Theoretical contributions to soil science
+   - Future research directions suggested
+
+Write in clear, direct language. Be specific and quantitative where the paper provides numbers.
+
+Return ONLY valid JSON:
+{
+    "main_finding": "3-4 sentences about what was discovered...",
+    "key_approach": "2-3 sentences about methods...",
+    "key_results": "2-3 sentences with important numbers/data...",
+    "implication": "1-2 sentences about why it matters..."
+}"""
+
+
+def generate_fulltext_summary(
+    pdf_path: str, title: str, api_key: str, model: str = "claude-haiku-4-5-20251001"
+) -> Optional[Dict]:
+    """
+    Generate an enhanced paper summary from full PDF text.
+
+    Creates a detailed summary with main finding, approach, key results, and implications.
+
+    Args:
+        pdf_path: Path to the PDF file
+        title: Paper title
+        api_key: Anthropic API key
+        model: Claude model to use
+
+    Returns:
+        Dict with enhanced_summary field, or None if failed
+    """
+    from pathlib import Path
+    from literature_manager.extractors.text_parser import extract_text_from_pdf
+
+    pdf_file = Path(pdf_path)
+    if not pdf_file.exists():
+        return None
+
+    # Extract full text from PDF
+    full_text = extract_text_from_pdf(pdf_file)
+    if not full_text or len(full_text) < 500:
+        return None
+
+    # Truncate if too long (keep ~20k chars which is ~5k tokens)
+    if len(full_text) > 25000:
+        full_text = full_text[:25000] + "\n\n[Text truncated...]"
+
+    prompt = FULLTEXT_SUMMARY_PROMPT.replace("%TITLE%", title)
+    prompt = prompt.replace("%FULLTEXT%", full_text)
+
+    try:
+        client = Anthropic(api_key=api_key)
+
+        message = client.messages.create(
+            model=model,
+            max_tokens=800,
+            temperature=0,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        response_text = message.content[0].text
+
+        # Parse JSON response
+        try:
+            summary_data = json.loads(response_text)
+        except json.JSONDecodeError:
+            import re
+            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
+            if json_match:
+                summary_data = json.loads(json_match.group(0))
+            else:
+                return None
+
+        return {
+            "main_finding": summary_data.get("main_finding", ""),
+            "key_approach": summary_data.get("key_approach", ""),
+            "key_results": summary_data.get("key_results", ""),
+            "implication": summary_data.get("implication", ""),
+        }
+
+    except Exception as e:
+        print(f"Fulltext summary error: {e}")
+        return None
+
+
+# Domain-specific extraction for soil science research
+DOMAIN_EXTRACTION_PROMPT = """You are a soil science specialist extracting structured research attributes from paper metadata.
+
+<task>
+Extract domain-specific attributes to enable precise filtering and discovery of soil science papers.
+</task>
+
+<paper_metadata>
+<title>%TITLE%</title>
+<abstract>%ABSTRACT%</abstract>
+</paper_metadata>
+
+<instructions>
+Extract the following structured attributes. Use ONLY values from the allowed lists where specified.
+If information is not clearly stated or inferable, use null or empty list [].
+
+1. STUDY_TYPE (pick ONE):
+   - "field" (field studies, plot experiments, chronosequences)
+   - "laboratory" (incubations, controlled experiments, bench work)
+   - "greenhouse" (pot trials, growth chamber)
+   - "modeling" (simulation, prediction, machine learning)
+   - "review" (meta-analysis, literature review, synthesis)
+   - "methods" (method development, validation, comparison)
+   - null if unclear
+
+2. ANALYTICAL_METHODS (list all that apply):
+   - Spectroscopy: "FTIR", "MIR", "NIR", "VNIR", "NMR", "Raman", "XRF", "XRD"
+   - Imaging: "SEM", "TEM", "CT-scan", "synchrotron"
+   - Wet chemistry: "wet-oxidation", "dry-combustion", "loss-on-ignition"
+   - Biological: "PLFA", "DNA-sequencing", "qPCR", "enzyme-assays", "respiration"
+   - Physical: "density-fractionation", "size-fractionation", "aggregate-analysis"
+   - Isotopes: "13C", "14C", "15N", "stable-isotopes"
+   - Other: "elemental-analyzer", "thermogravimetry"
+
+3. SOIL_FRACTIONS (list all studied):
+   - "bulk-soil", "POM", "MAOM", "fPOM", "oPOM", "light-fraction", "heavy-fraction"
+   - "sand", "silt", "clay", "aggregates", "microaggregates", "macroaggregates"
+   - "dissolved-organic-matter", "microbial-biomass", "root-biomass"
+
+4. DEPTH_INFO:
+   - Extract sampling depths if mentioned (e.g., "0-10cm", "0-30cm", "topsoil", "subsoil")
+   - Return as list of strings or null if not specified
+
+5. SOIL_PROPERTIES (list properties measured/predicted):
+   - Carbon: "SOC", "total-C", "organic-C", "inorganic-C", "black-carbon"
+   - Nitrogen: "total-N", "mineral-N", "NO3", "NH4", "N-mineralization"
+   - Other nutrients: "P", "K", "Ca", "Mg", "micronutrients"
+   - Physical: "bulk-density", "texture", "aggregate-stability", "water-holding"
+   - Biological: "microbial-biomass-C", "enzyme-activity", "respiration-rate"
+
+6. ECOSYSTEM_CONTEXT (pick ONE primary):
+   - "agricultural", "forest", "grassland", "wetland", "arid", "tropical"
+   - "temperate", "boreal", "alpine", "urban", "contaminated"
+   - null if not specified or multiple without clear primary
+
+7. MANAGEMENT_PRACTICES (list if applicable):
+   - "tillage", "no-till", "cover-crops", "crop-rotation", "organic-amendments"
+   - "biochar", "fertilizer", "irrigation", "grazing", "afforestation"
+   - "restoration", "remediation"
+</instructions>
+
+<output_format>
+Return ONLY valid JSON:
+{
+    "study_type": "field|laboratory|greenhouse|modeling|review|methods",
+    "analytical_methods": ["method1", "method2"],
+    "soil_fractions": ["fraction1", "fraction2"],
+    "depth_info": ["0-10cm", "10-30cm"],
+    "soil_properties": ["SOC", "total-N"],
+    "ecosystem": "agricultural|forest|grassland|...",
+    "management": ["practice1", "practice2"]
+}
+
+Use null for unknown single values, [] for unknown lists.
+</output_format>"""
+
+
+def extract_domain_attributes(
+    metadata: Dict, api_key: str, model: str = "claude-haiku-4-5-20251001"
+) -> Dict:
+    """
+    Extract domain-specific soil science attributes from paper metadata.
+
+    This supplements the basic metadata with structured attributes useful for
+    filtering and discovery: study type, methods, fractions, depths, etc.
+
+    Args:
+        metadata: Metadata dict with 'title' and optionally 'abstract'
+        api_key: Anthropic API key
+        model: Claude model to use
+
+    Returns:
+        Metadata dict with 'domain_attributes' field added
+    """
+    title = metadata.get("title", "")
+    abstract = metadata.get("abstract", "")
+
+    if not title:
+        return metadata
+
+    if not abstract:
+        abstract = "Not available - analyze title only"
+
+    # Truncate abstract if too long
+    if len(abstract) > 3000:
+        abstract = abstract[:3000] + "..."
+
+    prompt = DOMAIN_EXTRACTION_PROMPT.replace("%TITLE%", title)
+    prompt = prompt.replace("%ABSTRACT%", abstract)
+
+    try:
+        client = Anthropic(api_key=api_key)
+
+        message = client.messages.create(
+            model=model,
+            max_tokens=500,
+            temperature=0,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        response_text = message.content[0].text
+
+        # Parse JSON response
+        try:
+            domain_attrs = json.loads(response_text)
+        except json.JSONDecodeError:
+            import re
+            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
+            if json_match:
+                domain_attrs = json.loads(json_match.group(0))
+            else:
+                print(f"Warning: Could not parse domain attributes JSON")
+                return metadata
+
+        # Add to metadata
+        metadata["domain_attributes"] = {
+            "study_type": domain_attrs.get("study_type"),
+            "analytical_methods": domain_attrs.get("analytical_methods", []),
+            "soil_fractions": domain_attrs.get("soil_fractions", []),
+            "depth_info": domain_attrs.get("depth_info", []),
+            "soil_properties": domain_attrs.get("soil_properties", []),
+            "ecosystem": domain_attrs.get("ecosystem"),
+            "management": domain_attrs.get("management", []),
+        }
+
+        return metadata
+
+    except Exception as e:
+        print(f"Domain extraction error: {e}")
         return metadata
