@@ -61,3 +61,7 @@ sort_my_publications.py
 
 # macOS
 .DS_Store
+
+# Claude Code cache directories
+.claude/map/
+.claude/briefs/

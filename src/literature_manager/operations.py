@@ -107,6 +107,8 @@ def copy_to_recent(source_path: Path, recent_dir: Path) -> Optional[Path]:
     Returns:
         Path to copy in recent/, or None if failed
     """
+    import time
+
     try:
         recent_dir.mkdir(parents=True, exist_ok=True)
         dest_path = recent_dir / source_path.name
@@ -115,8 +117,23 @@ def copy_to_recent(source_path: Path, recent_dir: Path) -> Optional[Path]:
         if source_path.parent == recent_dir:
             return source_path
 
-        # Copy file (don't move, since it's already in by-topic)
-        shutil.copy2(str(source_path), str(dest_path))
+        # Skip if destination already exists
+        if dest_path.exists():
+            return dest_path
+
+        # Copy file with retry logic for macOS file locking issues
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Use shutil.copy instead of copy2 to avoid extended attribute issues
+                shutil.copy(str(source_path), str(dest_path))
+                return dest_path
+            except OSError as e:
+                if e.errno == 11 and attempt < max_retries - 1:  # Resource deadlock
+                    time.sleep(0.5)  # Brief delay before retry
+                    continue
+                raise
+
         return dest_path
 
     except Exception as e:

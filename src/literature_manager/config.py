@@ -73,6 +73,7 @@ class Config:
         # Data files
         self.index_path = self.tools_path / ".literature-index.json"
         self.log_path = self.tools_path / ".literature-log.txt"
+        self.status_path = self.tools_path / ".literature-status.json"
 
     def _load_env(self):
         """Load API keys from .env file in .tools/ directory."""

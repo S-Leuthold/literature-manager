@@ -32,6 +32,7 @@ from literature_manager.operations import (
     update_index,
 )
 from literature_manager.taxonomy import TopicTaxonomy
+from literature_manager.app.status import write_status
 
 # Initialize colorama for cross-platform color support
 init(autoreset=True)
@@ -458,6 +459,9 @@ def watch(ctx, verbose):
         print_info(f"  {pid_file_path}")
         sys.exit(1)
 
+    # Write status file for menu bar
+    write_status(config, state="watching", watch_pid=os.getpid())
+
     from watchdog.events import FileSystemEventHandler
     from watchdog.observers import Observer
 
@@ -508,7 +512,12 @@ def watch(ctx, verbose):
 
                 click.echo(f"\n{Fore.YELLOW}New PDF detected: {path.name}{Style.RESET_ALL}")
                 processed_files.add(path.name)
-                process_single_pdf(path, config, dry_run=False, verbose=verbose)
+                success = process_single_pdf(path, config, dry_run=False, verbose=verbose)
+                if success:
+                    write_status(config, last_processed={
+                        "title": path.stem[:60],
+                        "timestamp": datetime.now().isoformat()
+                    })
 
     print_info(f"Watching inbox: {config.inbox_path}")
     print_info("Press Ctrl+C to stop\n")
@@ -526,7 +535,12 @@ def watch(ctx, verbose):
             if pdf_path.name not in processed_files:
                 click.echo(f"\n{Fore.YELLOW}Processing existing PDF: {pdf_path.name}{Style.RESET_ALL}")
                 processed_files.add(pdf_path.name)
-                process_single_pdf(pdf_path, config, dry_run=False, verbose=verbose)
+                success = process_single_pdf(pdf_path, config, dry_run=False, verbose=verbose)
+                if success:
+                    write_status(config, last_processed={
+                        "title": pdf_path.stem[:60],
+                        "timestamp": datetime.now().isoformat()
+                    })
         print_info(f"\n✓ Finished processing existing files, now watching for new ones...\n")
 
     event_handler = PDFHandler()
@@ -539,6 +553,7 @@ def watch(ctx, verbose):
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
+        write_status(config, state="paused", watch_pid=None)
         print_info("\nStopped watching")
 
     observer.join()
