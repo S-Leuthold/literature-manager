@@ -40,6 +40,9 @@ class LiteratureManagerApp(rumps.App):
         # Build menu
         self._build_menu()
 
+        # Auto-start watcher (always watching when app is running)
+        self._ensure_watcher_running()
+
         # Start timer to poll status (every 2 seconds)
         self._timer = rumps.Timer(self._refresh_status, 2)
         self._timer.start()
@@ -51,12 +54,12 @@ class LiteratureManagerApp(rumps.App):
         """Build the menu structure."""
         self.menu = [
             rumps.MenuItem("📚 0 papers", callback=self._noop),
-            rumps.MenuItem("Status: Unknown", callback=self._noop),
+            rumps.MenuItem("Status: Starting...", callback=self._noop),
+            rumps.MenuItem("Last: None", callback=self._noop),
             None,  # Separator
             rumps.MenuItem("Open Library", callback=self._open_library),
             rumps.MenuItem("Open Inbox", callback=self._open_inbox),
             None,  # Separator
-            rumps.MenuItem("Start Watching", callback=self._toggle_watch),
             rumps.MenuItem("Process Now", callback=self._process_now),
             None,  # Separator
             rumps.MenuItem("View Logs", callback=self._view_logs),
@@ -67,34 +70,39 @@ class LiteratureManagerApp(rumps.App):
 
         # Store references for updates
         self._paper_count_item = self.menu["📚 0 papers"]
-        self._status_item = self.menu["Status: Unknown"]
-        self._watch_toggle_item = self.menu["Start Watching"]
+        self._status_item = self.menu["Status: Starting..."]
+        self._last_processed_item = self.menu["Last: None"]
 
     def _refresh_status(self, _):
         """Refresh status from status file and index."""
-        # Read status file
-        status = read_status(self.config)
-        state = status.get("state", "paused")
-        is_running = is_watch_running(self.config)
+        # Ensure watcher is always running
+        self._ensure_watcher_running()
 
         # Update status display
-        if is_running and state == "watching":
+        if is_watch_running(self.config):
             self._status_item.title = "Status: Watching"
-            self._watch_toggle_item.title = "Pause Watching"
         else:
-            self._status_item.title = "Status: Paused"
-            self._watch_toggle_item.title = "Start Watching"
+            self._status_item.title = "Status: Starting..."
 
         # Update paper count from index
         paper_count = self._get_paper_count()
         self._paper_count_item.title = f"📚 {paper_count} papers"
 
+        # Update last processed display (from index)
+        paper_info = self._get_last_processed_info()
+        if paper_info and paper_info.get("citation"):
+            self._last_processed_item.title = f"Last: {paper_info['citation']}"
+        else:
+            self._last_processed_item.title = "Last: None"
+
         # Check for new processed paper (for notifications)
+        status = read_status(self.config)
         last_processed = status.get("last_processed")
         if last_processed and last_processed != self._last_known_paper:
             self._last_known_paper = last_processed
-            title = last_processed.get("title", "Unknown")
-            self._send_notification("Paper Processed", title[:50])
+            # Show native macOS notification
+            if paper_info:
+                self._show_paper_notification(paper_info)
 
     def _get_paper_count(self) -> int:
         """Get paper count from index file."""
@@ -107,14 +115,131 @@ class LiteratureManagerApp(rumps.App):
             pass
         return 0
 
+    def _get_last_processed_info(self) -> dict:
+        """Get info about most recently processed paper."""
+        try:
+            if self.config.index_path.exists():
+                with open(self.config.index_path, "r") as f:
+                    index = json.load(f)
+                if not index:
+                    return None
+
+                # Find most recently processed
+                latest = max(index.values(), key=lambda x: x.get("processed_date", ""))
+
+                # Build citation: "Author et al., Year"
+                authors = latest.get("authors", [])
+                year = latest.get("year", "")
+                citation = None
+
+                if authors:
+                    first_author = authors[0].split(",")[0].split()[-1]  # Get last name
+                    if len(authors) > 1:
+                        citation = f"{first_author} et al."
+                    else:
+                        citation = first_author
+                    if year:
+                        citation += f", {year}"
+
+                # Format author list (first 3 + et al.)
+                author_list = ""
+                if authors:
+                    if len(authors) <= 3:
+                        author_list = ", ".join(authors)
+                    else:
+                        author_list = ", ".join(authors[:3]) + ", et al."
+
+                # Get enhanced summary if available
+                enhanced = latest.get("enhanced_summary", {})
+                summary = enhanced.get("main_finding") or latest.get("summary", "")
+
+                # Format processed time
+                processed_date = latest.get("processed_date", "")
+                time_str = ""
+                if processed_date:
+                    from datetime import datetime
+                    try:
+                        dt = datetime.fromisoformat(processed_date)
+                        time_str = dt.strftime("%I:%M %p")
+                    except Exception:
+                        pass
+
+                return {
+                    "citation": citation,
+                    "title": latest.get("title", ""),
+                    "authors": author_list,
+                    "summary": summary,
+                    "topics": latest.get("topics", []),
+                    "processed_time": time_str,
+                    "filepath": latest.get("filepath", ""),
+                }
+        except Exception:
+            pass
+        return None
+
+    def _ensure_watcher_running(self):
+        """Start watcher if not already running. Called on init and every refresh."""
+        if not is_watch_running(self.config):
+            self._start_watching()
+
     def _noop(self, _):
         """No-op callback to keep menu items enabled but non-functional."""
         pass
 
-    def _send_notification(self, title: str, message: str):
-        """Send macOS notification via osascript."""
-        script = f'display notification "{message}" with title "{title}"'
-        subprocess.run(["osascript", "-e", script], capture_output=True)
+    def _show_paper_notification(self, paper_info: dict):
+        """Show native macOS notification for newly processed paper."""
+        citation = paper_info.get("citation", "New Paper")
+        summary = paper_info.get("summary", "")
+        topics = paper_info.get("topics", [])
+        filepath = paper_info.get("filepath", "")
+
+        # Get journal from index if available
+        journal = ""
+        try:
+            if self.config.index_path.exists():
+                with open(self.config.index_path, "r") as f:
+                    index = json.load(f)
+                latest = max(index.values(), key=lambda x: x.get("processed_date", ""))
+                journal = latest.get("journal", "")
+        except Exception:
+            pass
+
+        # Title: Citation · Journal
+        title = citation
+        if journal:
+            title += f" · {journal}"
+
+        # Subtitle: blank for spacing
+        subtitle = " "
+
+        # Message: summary + tags inline
+        tags_str = " ".join(f"[{t}]" for t in topics[:3]) if topics else ""
+        # Compress summary to ~150 chars
+        if len(summary) > 150:
+            summary = summary[:147] + "..."
+        message = f"{summary} {tags_str}".strip() or "Processed successfully"
+
+        # Build terminal-notifier command
+        cmd = [
+            "terminal-notifier",
+            "-title", title,
+            "-subtitle", subtitle,
+            "-message", message,
+            "-sound", "default",
+            "-group", "literature-manager",
+        ]
+
+        # Add click action to open PDF
+        if filepath:
+            # filepath is relative to workshop root, not library_path
+            full_path = self.config.workshop_root / filepath
+            if full_path.exists():
+                # URL encode the path for spaces
+                from urllib.parse import quote
+                encoded_path = quote(str(full_path))
+                cmd.extend(["-open", f"file://{encoded_path}"])
+
+        subprocess.run(cmd, capture_output=True)
 
     def _open_library(self, _):
         """Open library folder in Finder."""
@@ -123,13 +248,6 @@ class LiteratureManagerApp(rumps.App):
     def _open_inbox(self, _):
         """Open inbox folder in Finder."""
         subprocess.run(["open", str(self.config.inbox_path)])
-
-    def _toggle_watch(self, _):
-        """Start or stop the watch process."""
-        if is_watch_running(self.config):
-            self._stop_watching()
-        else:
-            self._start_watching()
 
     def _start_watching(self):
         """Start the CLI watch command as subprocess."""
