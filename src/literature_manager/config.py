@@ -35,9 +35,9 @@ class Config:
         if config_path.exists():
             return config_path
 
-        # Try workshop/.tools/literature-manager (supports WORKSHOP_ROOT env var)
+        # Try workshop/library/literature-manager (supports WORKSHOP_ROOT env var)
         workshop_root = os.getenv("WORKSHOP_ROOT", str(Path.home() / "Desktop/workshop"))
-        workshop_tools = Path(workshop_root) / ".tools/literature-manager/config.yaml"
+        workshop_tools = Path(workshop_root) / "library/literature-manager/config.yaml"
         if workshop_tools.exists():
             return workshop_tools
 
@@ -62,7 +62,7 @@ class Config:
         self.workshop_root = workshop_root
         self.inbox_path = workshop_root / self.data.get("inbox_path", "workspace/inbox")
         self.library_path = workshop_root / self.data.get("library_path", "library/literature")
-        self.tools_path = workshop_root / self.data.get("tools_path", ".tools/literature-manager")
+        self.tools_path = workshop_root / self.data.get("tools_path", "library/literature-manager")
 
         # Literature subdirectories
         self.recent_path = self.library_path / "recent"
@@ -73,11 +73,10 @@ class Config:
         # Data files
         self.index_path = self.tools_path / ".literature-index.json"
         self.log_path = self.tools_path / ".literature-log.txt"
-        self.status_path = self.tools_path / ".literature-status.json"
 
     def _load_env(self):
-        """Load API keys from .env file in .tools/ directory."""
-        env_path = self.workshop_root / ".tools" / ".env"
+        """Load API keys from .env file in literature-manager directory."""
+        env_path = self.workshop_root / "library" / "literature-manager" / ".env"
         if env_path.exists():
             load_dotenv(env_path)
 

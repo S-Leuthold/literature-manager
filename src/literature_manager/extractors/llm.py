@@ -3,6 +3,7 @@
 import json
 from typing import Dict, List, Optional
 
+import anthropic
 from anthropic import Anthropic
 
 from literature_manager.extractors.text_parser import truncate_text_for_llm

@@ -18,7 +18,7 @@
 
     <!-- Working directory -->
     <key>WorkingDirectory</key>
-    <string>/Users/samleuthold/Desktop/workshop/.tools/literature-manager</string>
+    <string>/Users/samleuthold/Desktop/workshop/library/literature-manager</string>
 
     <!-- Run on load (start when you log in) -->
     <key>RunAtLoad</key>
@@ -35,13 +35,16 @@
     <key>ThrottleInterval</key>
     <integer>30</integer>
 
-    <!-- Standard output (logs) -->
+    <!-- Standard output (logs). MUST live off the ~/Desktop tree: launchd
+         opens these redirect files in its own context, which current macOS
+         denies for TCC-protected locations like ~/Desktop, causing a silent
+         EX_CONFIG (78) spawn failure. ~/Library/Logs is not TCC-protected. -->
     <key>StandardOutPath</key>
-    <string>/Users/samleuthold/Desktop/workshop/.tools/literature-manager/logs/watch.log</string>
+    <string>/Users/samleuthold/Library/Logs/literature-manager/watch.log</string>
 
     <!-- Standard error (errors) -->
     <key>StandardErrorPath</key>
-    <string>/Users/samleuthold/Desktop/workshop/.tools/literature-manager/logs/watch.error.log</string>
+    <string>/Users/samleuthold/Library/Logs/literature-manager/watch.error.log</string>
 
     <!-- Environment variables -->
     <key>EnvironmentVariables</key>
@@ -49,7 +52,7 @@
         <key>PATH</key>
         <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
         <key>PYTHONPATH</key>
-        <string>/Users/samleuthold/Desktop/workshop/.tools/literature-manager/src</string>
+        <string>/Users/samleuthold/Desktop/workshop/library/literature-manager/src</string>
         <key>PYENV_VERSION</key>
         <string>3.9.19</string>
     </dict>

@@ -85,9 +85,10 @@ def move_and_rename_file(
             symlink_dir.mkdir(parents=True, exist_ok=True)
             symlink_path = symlink_dir / dest_path.name
 
-            # Create symlink (relative path for portability)
+            # Create symlink (relative path for portability — survives a
+            # library move; absolute targets would break)
             try:
-                os.symlink(dest_path, symlink_path)
+                os.symlink(os.path.relpath(dest_path, symlink_dir), symlink_path)
             except FileExistsError:
                 pass  # Symlink already exists
             except Exception as e:
@@ -171,8 +172,17 @@ def save_index(index: Dict, index_path: Path):
     """
     index_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(index_path, "w") as f:
-        json.dump(index, f, indent=2)
+    # Atomic write: a crash mid-write (e.g. launchd kill) must not corrupt the
+    # index into an unparseable state that load_index silently turns into {}.
+    temp_path = index_path.with_suffix(".tmp")
+    try:
+        with open(temp_path, "w") as f:
+            json.dump(index, f, indent=2)
+        temp_path.replace(index_path)
+    except Exception:
+        if temp_path.exists():
+            temp_path.unlink()
+        raise
 
 
 def update_index(metadata: Dict, filepath: Path, config: Config):

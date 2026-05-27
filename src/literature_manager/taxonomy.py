@@ -1,8 +1,12 @@
 """Topic taxonomy management for literature categorization."""
 
+import logging
+
 import yaml
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+_REQUIRED_TOPIC_KEYS = {"slug", "category", "description"}
 
 
 class TopicTaxonomy:
@@ -21,6 +25,21 @@ class TopicTaxonomy:
 
         with open(taxonomy_path, "r") as f:
             self.data = yaml.safe_load(f)
+
+        # Validate and drop malformed topic entries so a single bad entry can't
+        # crash processing later (the May-2026 KeyError: 'description' class).
+        # Skip-and-warn keeps the watcher alive even if topics.yml regresses.
+        valid_topics = []
+        for i, topic in enumerate(self.data.get("topics", [])):
+            missing = _REQUIRED_TOPIC_KEYS - set(topic.keys())
+            if missing:
+                logging.warning(
+                    "topics.yml entry %d (slug=%s) missing %s — skipping",
+                    i, topic.get("slug", "?"), sorted(missing),
+                )
+                continue
+            valid_topics.append(topic)
+        self.data["topics"] = valid_topics
 
         # Build lookup structures
         self._topics_by_slug = {topic["slug"]: topic for topic in self.data["topics"]}
@@ -70,7 +89,7 @@ class TopicTaxonomy:
             lines.append("")
 
             for topic in topics:
-                lines.append(f"- **{topic['slug']}**: {topic['description']}")
+                lines.append(f"- **{topic.get('slug', '?')}**: {topic.get('description', '')}")
 
             lines.append("")
 
