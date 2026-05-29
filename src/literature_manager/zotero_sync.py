@@ -255,16 +255,17 @@ class ZoteroSync:
                 if abstract:
                     self._add_summary_note(item_key, metadata)
 
-                # Add to collections (one per topic)
-                current_item = resp['successful']['0']
-
+                # Add to collections (one per topic).
+                # Re-fetch the item before each add: the PDF attachment and
+                # summary note above already bumped the item's version, and
+                # each addto_collection bumps it again. Reusing a stale
+                # version triggers Zotero 412 "modified since" conflicts, so
+                # we pull the current version fresh on every iteration.
                 for topic in topics:
                     try:
                         coll_key = self.get_or_create_collection(topic)
-                        # addto_collection returns updated item or True
-                        result = self.zot.addto_collection(coll_key, current_item)
-                        if result and isinstance(result, dict):
-                            current_item = result  # Use returned version
+                        current_item = self.zot.item(item_key)
+                        self.zot.addto_collection(coll_key, current_item)
                         print(f"  ✓ Added to collection: {topic}")
                     except Exception as e:
                         print(f"  ⚠ Collection add failed for {topic}: {e}")
@@ -358,7 +359,13 @@ class ZoteroSync:
             print(f"  ⚠ Note creation error: {e}")
 
     def _update_item_tags_collections(self, item_key: str, topics: List[str]):
-        """Update tags and collections for existing item."""
+        """Update tags and collections for existing item.
+
+        Each write (update_item, addto_collection) bumps the item's Zotero
+        version, so we re-fetch the item before every write. Reusing a stale
+        version across consecutive PATCHes triggers 412 "modified since"
+        conflicts.
+        """
         try:
             # Get current item
             item = self.zot.item(item_key)
@@ -376,10 +383,12 @@ class ZoteroSync:
             item['data']['tags'] = new_tags
             self.zot.update_item(item)
 
-            # Add to collections
+            # Add to collections — re-fetch before each add so the version is
+            # current (the update_item above and each prior add bumped it).
             for topic in topics:
                 coll_key = self.get_or_create_collection(topic)
-                self.zot.addto_collection(coll_key, item)
+                current_item = self.zot.item(item_key)
+                self.zot.addto_collection(coll_key, current_item)
 
         except Exception as e:
             print(f"  ⚠ Error updating item: {e}")
