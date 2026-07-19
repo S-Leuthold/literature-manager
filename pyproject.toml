@@ -26,11 +26,13 @@ dependencies = [
     "colorama>=0.4.6",        # Colored terminal output
     "python-dotenv>=1.0.0",   # Environment variable management
     "pyzotero>=1.5.0",        # Zotero API client
-    "rumps>=0.4.0",           # macOS menu bar framework
 ]
 
 [project.optional-dependencies]
-app = [
+# macOS-only: the menu-bar app and its bundler. Not needed to run the `watch`
+# daemon, and both fail to install on Linux — keep the base install portable.
+macos = [
+    "rumps>=0.4.0",           # macOS menu bar framework
     "py2app>=0.28.0",         # macOS app bundling
 ]
 dev = [
