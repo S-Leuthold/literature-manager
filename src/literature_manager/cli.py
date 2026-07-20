@@ -166,7 +166,9 @@ def stats(ctx):
         click.echo(f"  {topic}: {count}")
 
     click.echo(f"\n{Fore.YELLOW}By Year:{Style.RESET_ALL}")
-    for year, count in sorted(years.items(), reverse=True)[:10]:
+    # year may be an int, a string, or None (papers whose year never parsed);
+    # sort on a uniform key so mixed/None values don't raise a TypeError.
+    for year, count in sorted(years.items(), key=lambda x: str(x[0] or ""), reverse=True)[:10]:
         click.echo(f"  {year}: {count}")
 
     click.echo(f"\n{Fore.YELLOW}By Extraction Method:{Style.RESET_ALL}")
