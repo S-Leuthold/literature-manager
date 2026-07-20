@@ -9,6 +9,34 @@ from typing import Dict, List, Optional, Tuple
 _REQUIRED_TOPIC_KEYS = {"slug", "category", "description"}
 
 
+def _find_topics_yml() -> Path:
+    """Locate topics.yml robustly.
+
+    topics.yml now ships inside the package (declared as package-data), so the
+    packaged copy next to this module is the canonical location. The other
+    candidates are fallbacks for running from a source checkout or overriding
+    via env. Search, in order: an explicit LITERATURE_MANAGER_TOPICS env var,
+    the packaged copy, the current working directory (the daemon's
+    WorkingDirectory), and the legacy repo-root layout. First existing wins;
+    else raise with the list tried.
+    """
+    import os
+
+    candidates = []
+    env = os.getenv("LITERATURE_MANAGER_TOPICS")
+    if env:
+        candidates.append(Path(env))
+    candidates.append(Path(__file__).parent / "topics.yml")                # packaged (canonical)
+    candidates.append(Path.cwd() / "topics.yml")                           # WorkingDirectory
+    candidates.append(Path(__file__).parent.parent.parent / "topics.yml")  # legacy repo layout
+    for c in candidates:
+        if c.is_file():
+            return c
+    raise FileNotFoundError(
+        "topics.yml not found. Looked in: " + ", ".join(str(c) for c in candidates)
+    )
+
+
 class TopicTaxonomy:
     """Manages the fixed topic taxonomy for paper categorization."""
 
@@ -20,8 +48,7 @@ class TopicTaxonomy:
             taxonomy_path: Path to topics.yml file. If None, uses default location.
         """
         if taxonomy_path is None:
-            # Default to topics.yml in package root
-            taxonomy_path = Path(__file__).parent.parent.parent / "topics.yml"
+            taxonomy_path = _find_topics_yml()
 
         with open(taxonomy_path, "r") as f:
             self.data = yaml.safe_load(f)

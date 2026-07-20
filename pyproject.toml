@@ -44,10 +44,14 @@ dev = [
 
 [project.scripts]
 literature-manager = "literature_manager.cli:main"
-literature-manager-app = "literature_manager.app.menubar:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# Ship topics.yml inside the installed package so the taxonomy loads regardless
+# of where the code runs from (a pip-installed package has no repo root).
+[tool.setuptools.package-data]
+literature_manager = ["topics.yml"]
 
 [tool.black]
 line-length = 100
