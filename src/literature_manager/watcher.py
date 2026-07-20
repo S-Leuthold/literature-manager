@@ -74,14 +74,11 @@ def run_watch(config, verbose: bool = True) -> None:
     processed_files = set()
 
     class PDFHandler(FileSystemEventHandler):
-        def on_created(self, event):
+        def _handle(self, target_path: str):
             # Nothing in here may escape: a handler exception would otherwise
             # kill the observer thread and silently stop watching.
             try:
-                if event.is_directory:
-                    return
-
-                path = Path(event.src_path)
+                path = Path(target_path)
                 if path.suffix.lower() != ".pdf":
                     return
 
@@ -117,8 +114,29 @@ def run_watch(config, verbose: bool = True) -> None:
                 processed_files.add(path.name)
                 process_pdf(path, config, notify=True, verbose=verbose)
             except Exception as e:
-                logging.exception("on_created handler failed for %s", getattr(event, "src_path", "?"))
+                logging.exception("PDF handler failed for %s", target_path)
                 print_error(f"Handler error (continuing to watch): {type(e).__name__}: {e}")
+
+        # A PDF can appear in the inbox several ways, and the delivery mechanism
+        # decides which event fires:
+        #   - a direct download/copy  -> on_created
+        #   - Syncthing (and most sync/atomic-save tools) write a hidden temp
+        #     file then RENAME it into place -> on_moved (dest_path)
+        #   - some editors/tools      -> on_modified
+        # The original handler only caught on_created, so sync-delivered files
+        # were intermittently missed (whichever way the poll cycle observed the
+        # temp->final rename). Handle all three; processed_files dedupes.
+        def on_created(self, event):
+            if not event.is_directory:
+                self._handle(event.src_path)
+
+        def on_moved(self, event):
+            if not event.is_directory:
+                self._handle(event.dest_path)
+
+        def on_modified(self, event):
+            if not event.is_directory:
+                self._handle(event.src_path)
 
     observer = PollingObserver(timeout=_POLL_INTERVAL_SECONDS)
     started = False
