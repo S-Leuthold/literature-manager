@@ -95,6 +95,27 @@ def update_index_fulltext_summary(doi: str, fulltext_summary: dict, config) -> b
     return updated
 
 
+# Module-level ZoteroSync cache. A fresh ZoteroSync rebuilds its full-library DOI
+# cache (paginating the ENTIRE Zotero library) on first use; constructing one per
+# PDF defeats that instance cache and re-fetches the whole library every time. The
+# watcher is a long-lived process, so we build one instance and reuse it for the
+# process lifetime -- the full-library fetch then happens once.
+_ZOTERO_SYNC = None
+
+
+def _get_zotero_sync(config):
+    """Return a process-lifetime cached ZoteroSync, or None if construction fails."""
+    global _ZOTERO_SYNC
+    if _ZOTERO_SYNC is None:
+        from literature_manager.zotero_sync import ZoteroSync
+        _ZOTERO_SYNC = ZoteroSync(
+            api_key=config.get("zotero_api_key"),
+            user_id=config.get("zotero_user_id"),
+            library_type=config.get("zotero_library_type", "user"),
+        )
+    return _ZOTERO_SYNC
+
+
 def process_pdf(
     pdf_path: Path, config, *, dry_run: bool = False, verbose: bool = True, notify: bool = False
 ) -> bool:
@@ -271,12 +292,7 @@ def process_pdf(
         zot_sync = None
         if not dry_run and config.get("zotero_sync_enabled", False):
             try:
-                from literature_manager.zotero_sync import ZoteroSync
-                zot_sync = ZoteroSync(
-                    api_key=config.get("zotero_api_key"),
-                    user_id=config.get("zotero_user_id"),
-                    library_type=config.get("zotero_library_type", "user")
-                )
+                zot_sync = _get_zotero_sync(config)
                 zot_sync.upload_paper(metadata, final_path, topics)
             except Exception as e:
                 print_warning(f"  Zotero upload failed: {e}")

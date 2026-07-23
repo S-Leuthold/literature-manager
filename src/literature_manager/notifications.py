@@ -12,12 +12,16 @@ Robustness notes:
 - If terminal-notifier cannot be found, fall back to osascript (banner only, no
   click-to-open).
 - Every failure is swallowed: a notification must never break processing.
+- macOS-only: on non-Darwin platforms (the headless Linux box)
+  notify_paper_processed returns immediately — there is no desktop to notify and
+  firing per-paper would only spam.
 """
 
 import json
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
@@ -123,6 +127,12 @@ def notify_paper_processed(metadata: dict, dest_folder: Path) -> None:
             topics) as assembled by the extraction pipeline.
         dest_folder: The folder the paper was filed into.
     """
+    # Native notifications are macOS-only (terminal-notifier / osascript). On the
+    # headless Linux box there is no desktop to notify and firing per-paper would
+    # only spam — so skip silently. (See notifications.py module docstring.)
+    if sys.platform != "darwin":
+        return
+
     try:
         title = _build_title(metadata)
         message = _build_message(metadata)
