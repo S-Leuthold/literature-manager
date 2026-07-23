@@ -1,14 +1,24 @@
 """Text extraction from PDFs.
 
 Reading is done through a fallback chain of independent readers
-(:func:`_read_pdf_text`). pdfminer (via pdfplumber) is non-deterministic on some
-valid PDFs — notably certain publisher-exported files — and used to be the sole
-reader, so any pdfminer hiccup got the file terminally quarantined to
-``corrupted/``. We now fall back to pypdfium2 and then poppler's ``pdftotext``
-before declaring a file unreadable, so only a file that *no* reader can open is
-treated as corrupt.
+(:func:`_read_pdf_text`). Two hardening measures live here:
+
+1. **Fallback chain.** pdfminer (via pdfplumber) is non-deterministic on some
+   valid PDFs — it throws on files poppler/pypdfium2 read fine. It used to be the
+   sole reader, so any pdfminer hiccup terminally quarantined the file to
+   ``corrupted/``. We now fall back to pypdfium2 then poppler ``pdftotext`` and
+   only declare a file unreadable when *no* reader can open it.
+
+2. **Subprocess isolation.** The in-process readers wrap C libraries
+   (pdfminer's native bits, PDFium) that can *segfault* on malformed input — a
+   SIGSEGV that no ``try/except`` can catch and that kills the whole watcher
+   process (observed 2026-07-22: status=11/SEGV core-dump on a PDF read). Each
+   in-process read therefore runs in a forked child; if the child dies from a
+   signal or times out, the parent treats that reader as failed and falls
+   through. ``pdftotext`` is already a subprocess, so it needs no wrapper.
 """
 
+import multiprocessing
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -18,70 +28,106 @@ from literature_manager.extractors.exceptions import CorruptedPDFError
 
 _PDFTOTEXT_BIN = "/usr/bin/pdftotext"
 _PDFTOTEXT_TIMEOUT = 30  # seconds, per file
+_READER_TIMEOUT = 60  # seconds for an isolated in-process reader child
+
+# A dedicated fork context: fork is cheap and the workers touch no shared state
+# that a fork would corrupt (they open the file fresh and return via a queue).
+_MP = multiprocessing.get_context("fork")
 
 
-def _try_pdfplumber(pdf_path: Path, max_pages: int) -> tuple[bool, Optional[str]]:
-    """Read via pdfplumber (pdfminer). Returns (opened, text). Never raises.
+# --- in-process reader bodies (run INSIDE the isolation subprocess) -----------
 
-    ``opened`` is True if the file opened and reported >=1 page. ``text`` is the
-    extracted text, or None if the file opened but yielded no text.
-    """
+def _pdfplumber_body(pdf_path: str, max_pages: int):
+    import pdfplumber
+
+    with pdfplumber.open(pdf_path) as pdf:
+        n = len(pdf.pages)
+        if n == 0:
+            return False, None
+        parts = []
+        for i in range(min(max_pages, n)):
+            try:
+                t = pdf.pages[i].extract_text()
+            except Exception:
+                t = None
+            if t:
+                parts.append(t)
+        return True, (" ".join(parts) if parts else None)
+
+
+def _pypdfium2_body(pdf_path: str, max_pages: int):
+    import pypdfium2 as pdfium
+
+    doc = pdfium.PdfDocument(pdf_path)
     try:
-        import pdfplumber
+        n = len(doc)
+        if n == 0:
+            return False, None
+        parts = []
+        for i in range(min(max_pages, n)):
+            page = doc[i]
+            textpage = page.get_textpage()
+            t = textpage.get_text_range()
+            textpage.close()
+            page.close()
+            if t and t.strip():
+                parts.append(t)
+        return True, (" ".join(parts) if parts else None)
+    finally:
+        doc.close()
 
-        with pdfplumber.open(pdf_path) as pdf:
-            n = len(pdf.pages)
-            if n == 0:
-                return False, None
-            parts = []
-            for i in range(min(max_pages, n)):
-                try:
-                    t = pdf.pages[i].extract_text()
-                except Exception:
-                    t = None
-                if t:
-                    parts.append(t)
-            return True, (" ".join(parts) if parts else None)
+
+def _isolation_worker(body, pdf_path: str, max_pages: int, queue) -> None:
+    """Run a reader body and push its result. Runs in a forked child so a
+    native segfault here dies with the child, not the parent."""
+    try:
+        queue.put(body(pdf_path, max_pages))
+    except Exception:
+        queue.put((False, None))
+
+
+def _run_isolated(body, pdf_path: Path, max_pages: int) -> tuple[bool, Optional[str]]:
+    """Run an in-process reader body in a forked child. If the child segfaults,
+    is killed, times out, or errors, return (False, None) so the caller falls
+    through to the next reader. The parent process is never taken down."""
+    queue = _MP.Queue()
+    proc = _MP.Process(
+        target=_isolation_worker, args=(body, str(pdf_path), max_pages, queue)
+    )
+    proc.start()
+    proc.join(_READER_TIMEOUT)
+
+    if proc.is_alive():
+        # hung — kill it and treat as failure
+        proc.terminate()
+        proc.join(5)
+        if proc.is_alive():
+            proc.kill()
+            proc.join(5)
+        return False, None
+
+    # exitcode < 0 -> killed by signal (e.g. -11 SIGSEGV); != 0 -> abnormal
+    if proc.exitcode != 0:
+        return False, None
+
+    try:
+        return queue.get_nowait()
     except Exception:
         return False, None
+
+
+# --- reader adapters (each never raises) --------------------------------------
+
+def _try_pdfplumber(pdf_path: Path, max_pages: int) -> tuple[bool, Optional[str]]:
+    return _run_isolated(_pdfplumber_body, pdf_path, max_pages)
 
 
 def _try_pypdfium2(pdf_path: Path, max_pages: int) -> tuple[bool, Optional[str]]:
-    """Read via pypdfium2 (PDFium). Returns (opened, text). Never raises.
-
-    PDFium is C-backed, so page/textpage/document handles are closed explicitly
-    to avoid leaks in the long-lived watcher process.
-    """
-    try:
-        import pypdfium2 as pdfium
-
-        doc = pdfium.PdfDocument(str(pdf_path))
-        try:
-            n = len(doc)
-            if n == 0:
-                return False, None
-            parts = []
-            for i in range(min(max_pages, n)):
-                page = doc[i]
-                textpage = page.get_textpage()
-                t = textpage.get_text_range()
-                textpage.close()
-                page.close()
-                if t and t.strip():
-                    parts.append(t)
-            return True, (" ".join(parts) if parts else None)
-        finally:
-            doc.close()
-    except Exception:
-        return False, None
+    return _run_isolated(_pypdfium2_body, pdf_path, max_pages)
 
 
 def _try_pdftotext(pdf_path: Path, max_pages: int) -> tuple[bool, Optional[str]]:
-    """Read via poppler's ``pdftotext`` subprocess. Returns (opened, text).
-
-    Most tolerant reader; used last. Never raises — a timeout or nonzero exit
-    returns (False, None).
-    """
+    """poppler ``pdftotext`` — already its own process, so no fork wrapper."""
     try:
         result = subprocess.run(
             [_PDFTOTEXT_BIN, "-l", str(max_pages), str(pdf_path), "-"],
@@ -103,8 +149,9 @@ def _read_pdf_text(pdf_path: Path, max_pages: int = 3) -> tuple[bool, Optional[s
     """Try every available reader until one opens the PDF.
 
     Readers are tried in order (pdfplumber, pypdfium2, pdftotext) so normal files
-    keep pdfplumber's layout-aware text and speed; the fallbacks only run when an
-    earlier reader fails.
+    keep pdfplumber's layout-aware text; the fallbacks only run when an earlier
+    reader fails. The in-process readers run in forked children so a native
+    segfault cannot take down the caller.
 
     Returns (opened, text):
       - opened=True  -> at least one reader opened the file (>=1 page). ``text``
@@ -182,7 +229,8 @@ def is_pdf_readable(pdf_path: Path) -> tuple[bool, Optional[str]]:
     pdftotext) can open it and report at least one page. A file that opens but
     yields no text is still "readable" — that's the scanned-image case, handled
     downstream as None text, not corruption. Only when every reader fails to open
-    the file is it declared unreadable.
+    the file is it declared unreadable. The in-process readers run in isolated
+    subprocesses so a segfault cannot crash the watcher.
 
     Args:
         pdf_path: Path to PDF file
