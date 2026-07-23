@@ -33,6 +33,13 @@ from literature_manager.core import process_pdf, print_error, print_info
 # Poll the inbox every few seconds. Fine for a single small folder.
 _POLL_INTERVAL_SECONDS = 2.0
 
+# Startup inbox-scan throttle. Each PDF makes a full Zotero library fetch +
+# CrossRef + up to several Anthropic calls, so a large backlog (e.g. a bulk
+# import) must be paced to avoid hammering those APIs. The live event handler is
+# NOT throttled — single arrivals already settle for >=2s each before processing.
+_STARTUP_SCAN_DELAY_SECONDS = 2.0
+_STARTUP_SCAN_MAX_BATCH = 50
+
 
 def run_watch(config, verbose: bool = True) -> None:
     """Watch the inbox and process PDFs as they arrive. Long-lived; runs until
@@ -168,15 +175,29 @@ def run_watch(config, verbose: bool = True) -> None:
         if verbose:
             print_info("✓ Watch mode started (polling observer)\n")
 
-        # Process any PDFs already sitting in the inbox before watching.
+        # Process any PDFs already sitting in the inbox before watching. This is
+        # the batch path — paced and capped so a large backlog cannot hammer the
+        # Zotero/CrossRef/Anthropic APIs (see the module constants above).
         existing_pdfs = list(config.inbox_path.glob("*.pdf"))
         if existing_pdfs:
-            print_info(f"Found {len(existing_pdfs)} existing PDFs in inbox, processing...\n")
-            for pdf_path in existing_pdfs:
+            total = len(existing_pdfs)
+            batch = existing_pdfs[:_STARTUP_SCAN_MAX_BATCH]
+            if total > _STARTUP_SCAN_MAX_BATCH:
+                print_info(
+                    f"Found {total} existing PDFs; processing the first "
+                    f"{_STARTUP_SCAN_MAX_BATCH} this startup. The remainder stay in "
+                    f"the inbox and are picked up on the next restart (or as live "
+                    f"arrivals).\n"
+                )
+            else:
+                print_info(f"Found {total} existing PDFs in inbox, processing...\n")
+            for i, pdf_path in enumerate(batch):
                 if pdf_path.name not in processed_files:
                     click.echo(f"\n{Fore.YELLOW}Processing existing PDF: {pdf_path.name}{Style.RESET_ALL}")
                     processed_files.add(pdf_path.name)
                     process_pdf(pdf_path, config, notify=True, verbose=verbose)
+                    if i < len(batch) - 1:
+                        time.sleep(_STARTUP_SCAN_DELAY_SECONDS)  # pace API load
             print_info("\n✓ Finished processing existing files, now watching for new ones...\n")
 
         observer.schedule(PDFHandler(), str(config.inbox_path), recursive=False)

@@ -2269,3 +2269,73 @@ def repair_metadata(ctx, dry_run):
 
 if __name__ == "__main__":
     main()
+
+
+@main.command("reprocess-corrupted")
+@click.option("--limit", default=25, help="Max PDFs to reprocess this run")
+@click.option("--delay", default=2.0, help="Seconds between PDFs (API pacing)")
+@click.option("--dry-run", is_flag=True, help="List candidates without processing")
+@click.pass_context
+def reprocess_corrupted(ctx, limit, delay, dry_run):
+    """Re-feed PDFs from corrupted/ back through the pipeline.
+
+    Many files land in corrupted/ from a transient reader failure rather than
+    real corruption. With the multi-reader fallback in place, re-feeding them
+    files them correctly; a genuinely-broken file is simply re-routed back to
+    corrupted/ by the pipeline (idempotent, safe to re-run).
+
+    Zero-byte files are skipped up front (truncated downloads — terminal).
+
+    NOTE: stop the live watcher first (`pkill -f literature-manager`) so the two
+    do not race on the inbox.
+    """
+    config = ctx.obj["config"]
+    config.ensure_directories()
+
+    corrupted = sorted(config.corrupted_path.glob("*.pdf"))
+    candidates = [p for p in corrupted if p.stat().st_size > 0]
+    skipped_empty = len(corrupted) - len(candidates)
+    if skipped_empty:
+        print_warning(
+            f"Skipping {skipped_empty} zero-byte file(s) (truncated; stay in corrupted/)"
+        )
+
+    batch = candidates[:limit]
+    if not batch:
+        print_info("Nothing to reprocess.")
+        return
+
+    click.echo(f"\nReprocessing {len(batch)} of {len(candidates)} candidate(s)...\n")
+
+    if dry_run:
+        print_warning("DRY RUN MODE - No changes will be made\n")
+        for p in batch:
+            click.echo(f"  would reprocess: {p.name}")
+        remaining = len(candidates) - len(batch)
+        if remaining:
+            print_info(f"\n{remaining} more candidate(s) beyond --limit {limit}.")
+        return
+
+    ok = 0
+    fail = 0
+    for i, src in enumerate(batch):
+        # Move back into the inbox, then run the pipeline on it. A still-broken
+        # file gets re-filed to corrupted/ by process_pdf itself.
+        dest = config.inbox_path / src.name
+        src.rename(dest)
+        click.echo(f"\n{Fore.YELLOW}Reprocessing: {src.name}{Style.RESET_ALL}")
+        if process_pdf(dest, config, notify=False, verbose=True):
+            ok += 1
+        else:
+            fail += 1  # process_pdf already re-filed it
+        if i < len(batch) - 1:
+            time.sleep(delay)
+
+    click.echo(f"\n{Fore.CYAN}{'='*60}{Style.RESET_ALL}")
+    print_success(f"Reprocessed OK: {ok}")
+    if fail:
+        print_warning(f"Still failed (re-filed by pipeline): {fail}")
+    remaining = len(candidates) - len(batch)
+    if remaining:
+        print_info(f"{remaining} remaining; re-run to continue.")
+    click.echo(f"{Fore.CYAN}{'='*60}{Style.RESET_ALL}\n")
