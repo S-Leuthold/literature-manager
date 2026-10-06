@@ -13,7 +13,7 @@ A command-line tool for researchers that automatically extracts metadata, assign
 - **Generates summaries** - both short (6-8 words for filenames) and detailed (4-paragraph analysis)
 - **Organizes files** with intelligent naming: `Author et al., Year - Finding Summary.pdf`
 - **Syncs to Zotero** with collections, tags, and attached notes
-- **Runs hands-free** as a background service (macOS)
+- **Runs hands-free** as a background service (systemd on Linux, where it runs today; launchd on macOS)
 
 **Designed for soil scientists and biogeochemists**, but easily adaptable to any research domain.
 
@@ -21,7 +21,7 @@ A command-line tool for researchers that automatically extracts metadata, assign
 
 ```bash
 # Clone and install
-git clone https://github.com/yourusername/literature-manager.git
+git clone https://github.com/S-Leuthold/literature-manager.git
 cd literature-manager
 pip install -e .
 
@@ -33,7 +33,7 @@ cp config.yaml.example config.yaml
 echo "ANTHROPIC_API_KEY=your_key" >> ../.env
 
 # Process papers
-cp ~/Downloads/*.pdf ~/Desktop/workshop/workspace/inbox/
+cp ~/Downloads/*.pdf <workshop_root>/library/inbox/
 literature-manager process
 ```
 
@@ -102,7 +102,7 @@ literature-manager process --dry-run    # Preview without changes
 
 # Background service
 literature-manager watch                # Watch mode (Ctrl+C to stop)
-./install_background_service.sh         # Install as macOS service
+./install_background_service.sh         # Install as a macOS launchd service (see Background Service for Linux)
 
 # Enrich existing library
 literature-manager summarize-fulltext --limit 100   # Generate detailed summaries
@@ -134,7 +134,7 @@ literature-manager zotero-update-summaries --limit 1000
 
 ```
 workshop/
-├── workspace/inbox/              # Drop PDFs here
+├── library/inbox/                # Drop PDFs here (inbox_path)
 └── library/literature/
     ├── by-topic/                 # Organized papers
     │   ├── soil-carbon/
@@ -191,7 +191,7 @@ Customize by editing `topics.yml` - no code changes needed.
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/literature-manager.git
+git clone https://github.com/S-Leuthold/literature-manager.git
 cd literature-manager
 
 # Create virtual environment (recommended)
@@ -210,17 +210,34 @@ cp ../.env.example ../.env
 # Add API keys to ../.env
 
 # Create directories
-mkdir -p ~/Desktop/workshop/workspace/inbox
-mkdir -p ~/Desktop/workshop/library/literature/by-topic
+mkdir -p <workshop_root>/library/inbox
+mkdir -p <workshop_root>/library/literature/by-topic
 
 # Test installation
 literature-manager --help
 literature-manager stats
 ```
 
+### Background Service (Linux, systemd): the current deployment
+
+Since 2026-07-19 the watcher runs on the Steve box (headless Ubuntu) as `literature-manager.service`, not on the laptop. The unit files live in the Steve repo (`infra/systemd/literature-manager.service` and `literature-manager-cleanup.{service,timer}`) and are installed from there, not from this repo.
+
+- **Watching:** `literature-manager --config /opt/steve/literature-manager/config.yaml watch`, run as the `steve` user from a venv at `/opt/steve/literature-manager/venv`. The config sets `workshop_root: /data/workshop`, so the inbox is `/data/workshop/library/inbox` and the library is `/data/workshop/library/literature`.
+- **Watcher:** watchdog's polling observer (no FSEvents or inotify dependency), which is what makes it work on Linux and across the separate workshop mount.
+- **Keys:** the Anthropic and Zotero keys are in this directory's `.env` (`/data/workshop/library/literature-manager/.env` on the box), deliberately not shared with Steve.
+- **Pruning `recent/`:** a daily timer runs `literature-manager cleanup`, moving papers older than `recent_retention_days` (3) out of `recent/`.
+
+```bash
+systemctl status literature-manager                # is it running?
+journalctl -u literature-manager -f                # processing activity
+systemctl list-timers literature-manager-cleanup   # the daily prune
+```
+
+Failures page through the box's `notify-failure@` alerts.
+
 ### Background Service (macOS)
 
-For fully automated processing:
+The original laptop setup, kept for running it on a Mac. For fully automated processing:
 
 ```bash
 ./install_background_service.sh
@@ -318,7 +335,7 @@ Contributions welcome! Areas for improvement:
 - Additional taxonomy domains (medicine, engineering, etc.)
 - Alternative LLM providers (OpenAI, local models)
 - Linked file support for Zotero
-- Windows/Linux background service support
+- Windows background service support
 - ISBN lookup for books
 
 ## License
@@ -337,4 +354,4 @@ Built with:
 
 **Version:** 2.1.0
 **Status:** Production
-**Last Updated:** 2025-12-05
+**Last Updated:** 2026-10-06 (deployment sections: the box)
